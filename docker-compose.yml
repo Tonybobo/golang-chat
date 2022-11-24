@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: zookeeper
+    ports:
+      - 2182:2181
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 0
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_CREATE_TOPICS: 'go-chat-message:2:1'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+      - zookeeper
+
+  mysql8:
+    image: mysql:8.0
+    container_name: mysql8
+    environment:
+      TZ: Asia/Singapore
+      MYSQL_ROOT_PASSWORD: Tonybo95
+      MYSQL_DATABASE: go-chat
+      MYSQL_USER: testing123
+      MYSQL_PASSWORD: testing123
+    ports:
+      - 3306:3306
+    command:
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+      --explicit_defaults_for_timestamp=true --lower_case_table_names=1
+
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: nginx
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #   ports:
+  #     - 80:80
+  #   links:
+  #     - gochat
+  #   depends_on:
+  #     - gochat
+
+  gochat:
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: dev
+    container_name: gochat
+    volumes:
+      - .:/opt/app/backend
+    restart: always
+    ports:
+      - 8888:8888
+    links:
+      - mysql8
+      - kafka
+    depends_on:
+      - mysql8
+      - kafka
