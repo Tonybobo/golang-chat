@@ -55,7 +55,7 @@ services:
       context: .
     container_name: go-chat
     volumes:
-      - ./:/backend
+      - .:/backend
     restart: always
     ports:
       - 8888:8888
