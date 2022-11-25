@@ -8,8 +8,6 @@ import (
 func main() {
 	log.InitLogger(config.GetConfig().Log.Path)
 	log.Logger.Info("config", log.Any("config", config.GetConfig()))
-	log.Logger.Info("messsage", log.String("message", "jst"))
-
-	log.Logger.Info("messsage", log.String("message", "sddddss"))
+	
 
 }
