@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"github.com/tonybobo/go-chat/config"
+	"github.com/tonybobo/go-chat/pkg/global/log"
 )
 
 func main() {
-	for {
-		fmt.Println("Hello World")
-		time.Sleep(time.Second * 3)
-	}
+	log.InitLogger(config.GetConfig().Log.Path)
+	log.Logger.Info("config", log.Any("config", config.GetConfig()))
+	log.Logger.Info("messsage", log.String("message", "jst"))
+
 }

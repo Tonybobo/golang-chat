@@ -53,10 +53,9 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
-      target: dev
-    container_name: gochat
+    container_name: go-chat
     volumes:
-      - .:/opt/app/backend
+      - ./:/backend
     restart: always
     ports:
       - 8888:8888

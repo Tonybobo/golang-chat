@@ -1,0 +1,15 @@
+appName = "go-chat"
+
+[mySql]
+host = "127.0.0.1"
+name = "go-chat"
+password = "testing123"
+port = 3306
+tablePrefix = ""
+user = "testing123"
+
+[msgChannelType]
+channelType = "gochannel"
+
+kafkaHosts = "kafka:29092"
+kafkaTopic = "go-chat-message"
