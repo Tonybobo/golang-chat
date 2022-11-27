@@ -1,0 +1,19 @@
+syntax = "proto3";
+package protocol ;
+
+option go_package = ".";
+
+
+message Message {
+    string avatar = 1;
+    string fromUsername = 2;
+    string from = 3;
+    string to = 4;
+    string content = 5;
+    int32 contentType = 6; // 1-> text , 2 -> pdf files etc , 3 -> pic , 4 -> audio , 5 -> video , 6-> voice call , 7 -> video call
+    string type = 7;
+    int32 messageType = 8; // 1 -> private message , 2- > group message
+    string url = 9; // url for video , picture or audio
+    string fileSuffix = 10 ;
+    bytes file = 11;
+}
