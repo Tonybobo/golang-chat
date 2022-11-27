@@ -8,6 +8,9 @@ port = 3306
 tablePrefix = ""
 user = "testing123"
 
+[log]
+path = "logs/chat.log"
+
 [msgChannelType]
 channelType = "gochannel"
 
