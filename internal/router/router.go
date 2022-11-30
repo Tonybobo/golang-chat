@@ -3,12 +3,13 @@ package router
 import (
 	"net/http"
 
+	v1 "github.com/tonybobo/go-chat/api/v1"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter() *gin.Engine{
+func NewRouter() *gin.Engine {
 	gin.SetMode("debug")
 
 	server := gin.Default()
@@ -19,20 +20,21 @@ func NewRouter() *gin.Engine{
 
 	group := server.Group("/api")
 	{
-		group.GET("/healthcheck" , func(c *gin.Context){
-			c.JSON(http.StatusOK , gin.H{"Message" : "Server is healthy"})
+		group.GET("/healthcheck", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"Message": "Server is healthy"})
 		})
-		group.GET("/socket.io",socket)
+		group.POST("/register", v1.Register)
+		group.GET("/socket.io", socket)
 	}
 
 	return server
 }
 
-func Recovery(c *gin.Context){
-	defer func(){
-		if r:=recover(); r!= nil{
-			log.Logger.Error("Gin Error" , log.Any("error" , r))
-			c.JSON(http.StatusBadGateway , gin.H{"Error" : "System Error"})
+func Recovery(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Logger.Error("Gin Error", log.Any("error", r))
+			c.JSON(http.StatusBadGateway, gin.H{"Error": "System Error"})
 		}
 	}()
 
@@ -40,17 +42,17 @@ func Recovery(c *gin.Context){
 }
 
 func CorsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context){
+	return func(c *gin.Context) {
 		method := c.Request.Method
-		origin := c.Request.Header.Get("Origin") 
+		origin := c.Request.Header.Get("Origin")
 		if origin != "" {
-			c.Header("Access-Control-Allow-Origin", "*") 
+			c.Header("Access-Control-Allow-Origin", "*")
 			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
 			c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
 			c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
-		
+
 		if method == "OPTIONS" {
 			c.JSON(http.StatusOK, "ok!")
 		}
@@ -63,5 +65,5 @@ func CorsMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
-	
+
 }

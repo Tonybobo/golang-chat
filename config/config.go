@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -11,19 +12,26 @@ type Config struct {
 	MySql          MySqlConfig
 	Log            LogConfig
 	MsgChannelType MsgChannelType
+	Token          Token
 }
 
 type MySqlConfig struct {
-	Host        string
+	HostnPort   string
 	Name        string
 	Password    string
-	Port        string
 	TablePrefix string
 	User        string
 }
 
 type LogConfig struct {
 	Path string
+}
+
+type Token struct {
+	AccessTokenPrivateKey string
+	AccessTokenPublicKey  string
+	AccessTokenExpiresIn  time.Duration
+	AccessTokenMaxAge     int
 }
 
 type MsgChannelType struct {

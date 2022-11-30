@@ -1,10 +1,9 @@
 appName = "go-chat"
 
 [mySql]
-host = "127.0.0.1"
+hostnport = "mysql8"
 name = "go-chat"
 password = "testing123"
-port = 3306
 tablePrefix = ""
 user = "testing123"
 
@@ -16,3 +15,9 @@ channelType = "gochannel"
 
 kafkaHosts = "kafka:29092"
 kafkaTopic = "go-chat-message"
+
+[Token]
+AccessTokenPrivateKey=""
+AccessTokenPublicKey=""
+AccessTokenExpiresIn="1h"
+AccessTokenMaxAge=60
