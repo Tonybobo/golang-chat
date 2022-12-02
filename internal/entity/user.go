@@ -44,6 +44,11 @@ type EditUser struct {
 	Email    string `json:"email" gorm:"type:varchar(80);column:email;comment:'email'"`
 }
 
+type SearchResponse struct {
+	User  []User      `json:"user"`
+	Group []GroupChat `json:"group"`
+}
+
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	tx.Statement.SetColumn("CreatedAt", time.Now())
 	return nil

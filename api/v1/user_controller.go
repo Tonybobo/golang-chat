@@ -69,3 +69,9 @@ func GetUserDetail(ctx *gin.Context) {
 	log.Logger.Info("uid", log.String("uid", uid))
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": service.UserService.GetUserDetails(uid)})
 }
+
+func GetUserOrGroupByName(ctx *gin.Context) {
+	name := ctx.Param("name")
+	result := service.UserService.GetUsersOrGroupBy(name)
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": result})
+}

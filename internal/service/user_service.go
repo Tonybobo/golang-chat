@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
@@ -68,4 +69,17 @@ func (u *userService) GetUserDetails(uid string) *entity.User {
 	db := repository.GetDB()
 	db.Select("uid", "username", "avatar", "name").First(&user, "uid = ?", uid)
 	return user
+}
+
+func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
+	var queryUser []entity.User
+	db := repository.GetDB()
+	db.Raw("SELECT uid , username , name , avatar FROM users WHERE name LIKE ?", fmt.Sprintf("%%%s%%", name)).Scan(&queryUser)
+	var queryGroup []entity.GroupChat
+	db.Raw("SELECT uid , name FROM group_chats WHERE name LIKE ?", fmt.Sprintf("%%%s%%", name)).Scan(&queryGroup)
+
+	return &entity.SearchResponse{
+		User:  queryUser,
+		Group: queryGroup,
+	}
 }
