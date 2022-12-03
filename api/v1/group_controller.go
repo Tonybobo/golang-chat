@@ -8,8 +8,15 @@ import (
 	"github.com/tonybobo/go-chat/internal/service"
 )
 
-func GetGroup(ctx *gin.Context) {
+func GetGroups(ctx *gin.Context) {
+	uid := ctx.Param("uid")
 
+	groups , err := service.GroupSerivce.GetGroups(uid)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK , gin.H{"status" : "success" , "data" : groups})
 }
 
 func SaveGroup(ctx *gin.Context) {
@@ -29,9 +36,25 @@ func SaveGroup(ctx *gin.Context) {
 }
 
 func JoinGroup(ctx *gin.Context) {
+	userUid := ctx.Param("userUid")
+	groupUid := ctx.Param("groupUid")
 
+	if err := service.GroupSerivce.JoinGroup(userUid , groupUid); err != nil {
+		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK , gin.H{"status" : "success"})
 }
 
 func GetGroupUser(ctx *gin.Context) {
+	groupUid := ctx.Param("uid")
 
+	users , err := service.GroupSerivce.GetGroupUsers(groupUid)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
+		return
+	}
+
+		ctx.JSON(http.StatusOK , gin.H{"status" : "success" , "data" : users})
 }

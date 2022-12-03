@@ -21,7 +21,6 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 		return nil, errors.New("password not match")
 	}
 	db := repository.GetDB()
-	db.AutoMigrate(&newUser)
 	var count int64
 	db.Model(user).Where("username", register.Username).Count(&count)
 	if count > 0 {
@@ -82,4 +81,48 @@ func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
 		User:  queryUser,
 		Group: queryGroup,
 	}
+}
+
+func (u *userService) AddFriend(request *entity.FriendRequest) error {
+	var user *entity.User
+	db := repository.GetDB()
+	result := db.First(&user , "uid = ?" , request.Uid)
+	if result.RowsAffected == 0 {
+		return errors.New("no user found")
+	}
+
+	var friend *entity.User
+	result2:= db.First(&friend , "uid = ?" , request.FriendUid)
+	if result2.RowsAffected ==  0 {
+		return errors.New("no user found")
+	}
+
+	var userFriend *entity.UserFriend
+	result3 := db.First(&userFriend , "user_id = ? AND friend_id = ?" , user.Id , friend.Id)
+
+	if result3.RowsAffected > 0 {
+		return errors.New("user has been added to your friend list")
+	}
+
+	addFriend := &entity.UserFriend{
+		UserId: user.Id,
+		FriendId: friend.Id,
+	}
+
+	db.Create(&addFriend)
+	return nil
+}
+
+func (u *userService) GetFriends (uid string) (*[]entity.User , error) {
+	db := repository.GetDB()
+	var user *entity.User 
+	result := db.First(&user , "uid = ?" , uid)
+	if result.RowsAffected == 0 {
+		return nil , errors.New("no user found")
+	} 
+
+	var friends *[]entity.User
+
+	db.Raw("SELECT u.uid , u.username , u.avatar FROM user_friends as uf JOIN users as u ON uf.friend_id = u.id WHERE uf.user_id = ?" , user.Id).Scan(&friends)
+	return friends , nil
 }

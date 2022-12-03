@@ -31,8 +31,14 @@ func NewRouter() *gin.Engine {
 		group.GET("/socket.io", socket)
 		group.GET("/search/:name", v1.GetUserOrGroupByName)
 
+		group.POST("/user/add" , v1.AddFriend)
+		group.GET("/user/friends" , v1.GetFriends)
+
 		//group
 		group.POST("/savegroup/:uid", v1.SaveGroup)
+		group.POST("/group/join/:userUid/:groupUid" , v1.JoinGroup)
+		group.GET("/group/:uid" , v1.GetGroups)
+		group.GET("/group/user/:uid" , v1.GetGroupUser)
 	}
 
 	return server

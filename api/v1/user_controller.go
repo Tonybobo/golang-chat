@@ -4,10 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tonybobo/go-chat/config"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/service"
-	"github.com/tonybobo/go-chat/pkg/common/utils"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 )
 
@@ -19,8 +17,6 @@ func Login(ctx *gin.Context) {
 	}
 
 	if user, ok := service.UserService.Login(&login); ok {
-		access_token, _ := utils.CreateToken(config.GetConfig().Token.AccessTokenExpiresIn, user.Uid, config.GetConfig().Token.AccessTokenPrivateKey)
-		ctx.SetCookie("access_token", access_token, config.GetConfig().Token.AccessTokenMaxAge*60, "/", "localhost", false, true)
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": entity.FilteredResponse(user)})
 		return
 	} else {
@@ -44,8 +40,6 @@ func Register(ctx *gin.Context) {
 	}
 
 	log.Logger.Info("Successfully Register User", log.Any("User : ", user.Username))
-	access_token, _ := utils.CreateToken(config.GetConfig().Token.AccessTokenExpiresIn, user.Uid, config.GetConfig().Token.AccessTokenPrivateKey)
-	ctx.SetCookie("access_token", access_token, config.GetConfig().Token.AccessTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": entity.FilteredResponse(user)})
 }
 
@@ -74,4 +68,31 @@ func GetUserOrGroupByName(ctx *gin.Context) {
 	name := ctx.Param("name")
 	result := service.UserService.GetUsersOrGroupBy(name)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": result})
+}
+
+func AddFriend (ctx *gin.Context) {
+	var request entity.FriendRequest 
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+
+	if err := service.UserService.AddFriend(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func GetFriends(ctx *gin.Context) {
+	uid := ctx.Query("uid")
+
+	friends , err := service.UserService.GetFriends(uid)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : friends})
 }

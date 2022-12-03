@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tonybobo/go-chat/config"
+	"github.com/tonybobo/go-chat/internal/entity"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -31,6 +32,7 @@ func init() {
 	}
 
 	sqlDB, err := _db.DB()
+	_db.AutoMigrate(&entity.GroupMember{} , &entity.GroupChat{} , &entity.Message{} , &entity.User{} , &entity.UserFriend{})
 
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
 	sqlDB.SetMaxIdleConns(100)

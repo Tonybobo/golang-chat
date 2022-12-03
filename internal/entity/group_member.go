@@ -16,3 +16,14 @@ type GroupMember struct {
 	Name string `json:"name" gorm:"type:varchar(350);comment:'group name'"`
 	Mute bool `json:"mute" gorm:"comment:'member are muted by Owner'"`
 }
+
+
+func (g *GroupMember) BeforeCreate(tx *gorm.DB) (err error) {
+	tx.Statement.SetColumn("CreatedAt", time.Now())
+	return nil
+}
+
+func (g *GroupMember) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now())
+	return nil
+}

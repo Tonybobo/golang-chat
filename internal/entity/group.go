@@ -17,6 +17,14 @@ type GroupChat struct {
 	Notice    string         `json:"notice" gorm:"type:varchar(350); comment:'notice'"`
 }
 
+type GroupResponse struct {
+	Uid       string         `json:"uid"`
+	GroupId		int32 `json:"groupId"`
+	CreatedAt time.Time `json:"createdAt"`
+	Name 	string	`json:"name"`
+	Notice 	string `json:"notice"`
+}
+
 func (g *GroupChat) BeforeCreate(tx *gorm.DB) (err error) {
 	tx.Statement.SetColumn("CreatedAt", time.Now())
 	return nil

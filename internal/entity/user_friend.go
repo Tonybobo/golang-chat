@@ -14,3 +14,18 @@ type UserFriend struct {
 	UserId int32 `json:"userId" gorm:"index;comment:'userId'"`
 	FriendId int32 `json:"friendId" gorm:"index;comment:'friendId'"`
 }
+
+type FriendRequest struct {
+	Uid string `json:"uid"`
+	FriendUid string  `json:"friend_uid"`
+}
+
+func (f *UserFriend) BeforeCreate(tx *gorm.DB) (err error) {
+	tx.Statement.SetColumn("CreatedAt", time.Now())
+	return nil
+}
+
+func (f *UserFriend) BeforeUpdate(tx *gorm.DB) error {
+	tx.Statement.SetColumn("UpdatedAt", time.Now())
+	return nil
+}
