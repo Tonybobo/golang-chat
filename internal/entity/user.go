@@ -59,8 +59,8 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-func FilteredResponse(user *User) UserResponse {
-	return UserResponse{
+func FilteredResponse(user *User) *UserResponse {
+	return &UserResponse{
 		Uid:      user.Uid,
 		Avatar:   user.Avatar,
 		Username: user.Username,

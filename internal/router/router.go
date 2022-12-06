@@ -24,8 +24,8 @@ func NewRouter() *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"Message": "Server is healthy"})
 		})
 		//user
-		group.POST("/register", v1.Register)
-		group.GET("/login", v1.Login)
+		group.POST("/user/register", v1.Register)
+		group.POST("/user/login", v1.Login)
 		group.POST("/edituser", v1.EditUserDetail)
 		group.GET("/user/:uid", v1.GetUserDetail)
 		group.GET("/socket.io", socket)

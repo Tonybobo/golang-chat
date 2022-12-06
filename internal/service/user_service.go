@@ -42,7 +42,8 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 	db := repository.GetDB()
 	var queryUser *entity.User
-	db.First(&queryUser, "username = ?", login.Username)
+	db.Where("username = ?", login.Username).First(&queryUser)
+	
 	if err := utils.VerifyPassword(queryUser.Password, login.Password); err != nil {
 		return nil, false
 	} else {
