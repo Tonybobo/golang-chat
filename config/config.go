@@ -9,18 +9,16 @@ import (
 
 type Config struct {
 	AppName        string
-	MySql          MySqlConfig
+	Mongo          MongoConfig
 	Log            LogConfig
 	MsgChannelType MsgChannelType
 	Token          Token
 }
 
-type MySqlConfig struct {
-	HostnPort   string
-	Name        string
+type MongoConfig struct {
+	Username        string
 	Password    string
-	TablePrefix string
-	User        string
+	Database 	string
 }
 
 type LogConfig struct {

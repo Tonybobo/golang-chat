@@ -3,29 +3,20 @@ package entity
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserFriend struct {
-	ID int32 `json:"id" gorm:"primaryKey"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	DeletedAt  gorm.DeletedAt      `json:"deletedAt"`
-	UserId int32 `json:"userId" gorm:"index;comment:'userId'"`
-	FriendId int32 `json:"friendId" gorm:"index;comment:'friendId'"`
+	Id primitive.ObjectID   `json:"_id" bson:"_id" `
+	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
+	DeletedAt  bool      `json:"deletedAt" bson:"deletedAt"  `
+	UserId string `json:"userId" bson:"userId" validate:"required"`
+	FriendId string `json:"friendId" bson:"userId" validate:"required"`
 }
 
 type FriendRequest struct {
-	Uid string `json:"uid"`
-	FriendUid string  `json:"friend_uid"`
+	Uid string `json:"uid" bson:"uid"`
+	FriendUid string  `json:"friend_uid" bson:"friend_uid" `
 }
 
-func (f *UserFriend) BeforeCreate(tx *gorm.DB) (err error) {
-	tx.Statement.SetColumn("CreatedAt", time.Now())
-	return nil
-}
-
-func (f *UserFriend) BeforeUpdate(tx *gorm.DB) error {
-	tx.Statement.SetColumn("UpdatedAt", time.Now())
-	return nil
-}

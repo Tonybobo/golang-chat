@@ -3,19 +3,19 @@ package entity
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Message struct {
-	ID int32 `json:"id" gorm:"primaryKey"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"deletedAt"`
-	FromUserId int32 `json:"fromUserId" gorm:"index"`
-	ToUserId int32 `json:"toUserId" gorm:"index;comment:'one or group id'"`
-	Content string `json:"content" gorm:"type:varchar(2500)"`
-	MessageType int16 `json:"messageType" gorm:"comment:'one or group message'"`
-	ContentType int16 `json:"contentType" gorm:"comment:'text , file , pic , audio , video ...'"`
-	Image string `json:"image" gorm:"type:text; comment:'image'" `
-	Url string `json:"url" gorm:"type:varchar(250);comment:'file url'"`
+	ID primitive.ObjectID          `json:"_id" bson:"_id" `
+	CreatedAt time.Time  `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt" bson:"updatedAt"`
+	DeletedAt bool `json:"deletedAt" bson:"deletedAt"  `
+	FromUserId string `json:"fromUserId" bson:"fromUserId"`
+	ToUserId string `json:"toUserId" bson:"toUserId"`
+	Content string `json:"content" bson:"content"`
+	MessageType int16 `json:"messageType" bson:"messageType"`
+	ContentType int16 `json:"contentType" bson:"contentType"`
+	Image string `json:"image" bson:"image"`
+	Url string `json:"url" bson:"url"`
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"sync"
 
+	"github.com/tonybobo/go-chat/pkg/common/constant"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"github.com/tonybobo/go-chat/pkg/protocol"
 	"google.golang.org/protobuf/proto"
@@ -38,9 +39,8 @@ func (s *Server) Start() {
 
 			s.Clients[conn.User] = conn
 			msg := &protocol.Message{
-				From:    "System",
-				To:      conn.User,
-				Content: "Welcome Back",
+				Content: constant.PONG,
+				Type : constant.HEART_BEAT,
 			}
 
 			protoMsg, err := proto.Marshal(msg)

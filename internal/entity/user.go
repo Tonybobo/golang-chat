@@ -3,45 +3,46 @@ package entity
 import (
 	"time"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
-	Id        int32          `json:"id" gorm:"primaryKey;AUTO_INCREMENT;comment:'id'"`
-	Uid       string         `json:"uid" gorm:"type:varchar(150);not null;unique_index:idx_uid;comment:'uid'"`
-	Username  string         `json:"username" form:"username" binding:"required" gorm:"unique;not null; comment:'username'"`
-	Name      string         `json:"name" gorm:"comment:'Real Name'"`
-	Password  string         `json:"password" form:"password" binding:"required" gorm:"type:varchar(150);not null;comment:'password'"`
-	Avatar    string         `json:"avatar" gorm:"type:varchar(150);comment:'avatar'"`
-	Email     string         `json:"email" gorm:"type:varchar(80);column:email;comment:'email'"`
-	CreatedAt *time.Time     `json:"createdAt"`
-	UpdatedAt *time.Time     `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"deletedAt"`
+	Id        primitive.ObjectID          `json:"_id" bson:"_id" `
+	Uid       string         `json:"uid" bson:"uid" `
+	Username  string         `json:"username" bson:"username" validate:"required, min=4"`
+	Name      string         `json:"name" bson:"name"`
+	Password  string         `json:"password" bson:"password" validate:"required,min=4"`
+	Avatar    string         `json:"avatar" bson:"avatar"`
+	Email     string         `json:"email" bson:"email" validate:"required"`
+	CreatedAt time.Time     `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt" bson:"updatedAt"`
+	DeletedAt bool `json:"deletedAt" bson:"deletedAt"  `
 }
 
 type UserResponse struct {
-	Uid      string `json:"uid" gorm:"type:varchar(150);not null;unique_index:idx_uid;comment:'uid'"`
-	Username string `json:"username" form:"username" binding:"required" gorm:"unique;not null; comment:'username'"`
-	Avatar   string `json:"avatar" gorm:"type:varchar(150);comment:'avatar'"`
-	Email    string `json:"email" gorm:"type:varchar(80);column:email;comment:'email'"`
+	Uid      string `json:"uid" bson:"uid"`
+	Username string `json:"username" bson:"username" validate:"required"`
+	Avatar   string `json:"avatar" bson:"avatar" `
+	Email    string `json:"email"  bson:"avatar" validate:"required"`
 }
 
 type Register struct {
-	Username        string `json:"username" form:"username" binding:"required" gorm:"unique;not null; comment:'username'"`
-	Password        string `json:"password" form:"password" binding:"required" gorm:"type:varchar(150);not null;comment:'password'"`
-	PasswordConfirm string `json:"passwordConfirm" form:"password" gorm:"type:varchar(150);not null;comment:'password'"`
-	Email           string `json:"email" gorm:"type:varchar(80);column:email;comment:'email'"`
+	Username        string  `json:"username" bson:"username" validate:"required, min=4"`
+	Password        string  `json:"password" bson:"password" validate:"required,min=4"`
+	PasswordConfirm string `json:"passwordConfirm" bson:"passwordConfirm,omitempty" binding:"required"`
+	Email           string `json:"email" bson:"email" binding:"required"`
 }
 
 type Login struct {
-	Username string `json:"username" form:"username" binding:"required" gorm:"unique;not null; comment:'username'"`
-	Password string `json:"password" form:"password" binding:"required" gorm:"type:varchar(150);not null;comment:'password'"`
+	Username        string  `json:"username" bson:"username" validate:"required, min=4"`
+	Password        string  `json:"password" bson:"password" validate:"required,min=4"`
 }
 
 type EditUser struct {
-	Username string `json:"username" form:"username" binding:"required" gorm:"unique;not null; comment:'username'"`
-	Name     string `json:"name" gorm:"comment:'Real Name'"`
-	Email    string `json:"email" gorm:"type:varchar(80);column:email;comment:'email'"`
+	Username string `json:"username" bson:"username" validate:"required"`
+	Name      string         `json:"name" bson:"name"`
+	Avatar   string `json:"avatar" bson:"avatar" `
+	Email    string `json:"email"  bson:"avatar" validate:"required"`
 }
 
 type SearchResponse struct {
@@ -49,15 +50,7 @@ type SearchResponse struct {
 	Group []GroupChat `json:"group"`
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	tx.Statement.SetColumn("CreatedAt", time.Now())
-	return nil
-}
 
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	tx.Statement.SetColumn("UpdatedAt", time.Now())
-	return nil
-}
 
 func FilteredResponse(user *User) *UserResponse {
 	return &UserResponse{

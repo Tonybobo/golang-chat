@@ -1,46 +1,46 @@
 package repository
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/tonybobo/go-chat/config"
-	"github.com/tonybobo/go-chat/internal/entity"
-
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"github.com/tonybobo/go-chat/pkg/global/log"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var _db *gorm.DB
+var _db *mongo.Database
 
 func init() {
-	username := config.GetConfig().MySql.User
-	password := config.GetConfig().MySql.Password
-	hostNport := config.GetConfig().MySql.HostnPort
-	name := config.GetConfig().MySql.Name
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=%s", username, password, hostNport, name, "10s")
 
-	var err error
+	username := config.GetConfig().Mongo.Username
+	password := config.GetConfig().Mongo.Password
+	database := config.GetConfig().Mongo.Database
 
-	_db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+
+	dsn := fmt.Sprintf("mongodb+srv://%s:%s@cluster0.bkuvj3e.mongodb.net/?retryWrites=true&w=majority", username, password)
+
+	client , err := mongo.NewClient(options.Client().ApplyURI(dsn))
 
 	if err != nil {
 		panic("Fail to connect to DB err:" + err.Error())
 	}
 
-	sqlDB, err := _db.DB()
-	_db.AutoMigrate(&entity.GroupMember{} , &entity.GroupChat{} , &entity.Message{} , &entity.User{} , &entity.UserFriend{})
+	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
 
-	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
-	sqlDB.SetMaxIdleConns(100)
-
-	// SetMaxOpenConns sets the maximum number of open connections to the database.
-	sqlDB.SetMaxOpenConns(100)
+	defer cancel()
+	err = client.Connect(ctx)
+	if err != nil{
+		panic(err)
+	}
+	log.Logger.Info("DB" , log.String("mongodb" , "connected"))
+	
+	_db = client.Database(database)
 }
 
-func GetDB() *gorm.DB {
+func GetDB() *mongo.Database  {
 	return _db
 }
