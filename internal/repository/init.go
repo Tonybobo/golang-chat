@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/tonybobo/go-chat/config"
-	"github.com/tonybobo/go-chat/pkg/global/log"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -36,9 +36,28 @@ func init() {
 	if err != nil{
 		panic(err)
 	}
-	log.Logger.Info("DB" , log.String("mongodb" , "connected"))
+	
 	
 	_db = client.Database(database)
+
+	index := []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key :"username" , Value: 1 }},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys: bson.D{{Key:"name" ,Value:"text" }},
+		},
+	}
+	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
+
+	_db.Collection("users").Indexes().CreateMany(
+		context.TODO(),
+		index,
+		opts,
+	)
+
+	
 }
 
 func GetDB() *mongo.Database  {

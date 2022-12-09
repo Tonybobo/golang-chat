@@ -35,26 +35,26 @@ func SaveGroup(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func JoinGroup(ctx *gin.Context) {
-	userUid := ctx.Param("userUid")
-	groupUid := ctx.Param("groupUid")
+// func JoinGroup(ctx *gin.Context) {
+// 	userUid := ctx.Param("userUid")
+// 	groupUid := ctx.Param("groupUid")
 
-	if err := service.GroupSerivce.JoinGroup(userUid , groupUid); err != nil {
-		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
-		return
-	}
+// 	if err := service.GroupSerivce.JoinGroup(userUid , groupUid); err != nil {
+// 		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK , gin.H{"status" : "success"})
-}
+// 	ctx.JSON(http.StatusOK , gin.H{"status" : "success"})
+// }
 
-func GetGroupUser(ctx *gin.Context) {
-	groupUid := ctx.Param("uid")
+// func GetGroupUser(ctx *gin.Context) {
+// 	groupUid := ctx.Param("uid")
 
-	users , err := service.GroupSerivce.GetGroupUsers(groupUid)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
-		return
-	}
+// 	users , err := service.GroupSerivce.GetGroupUsers(groupUid)
+// 	if err != nil {
+// 		ctx.JSON(http.StatusBadRequest , gin.H{"status" : "fail" , "error" : err.Error()})
+// 		return
+// 	}
 
-		ctx.JSON(http.StatusOK , gin.H{"status" : "success" , "data" : users})
-}
+// 		ctx.JSON(http.StatusOK , gin.H{"status" : "success" , "data" : users})
+// }

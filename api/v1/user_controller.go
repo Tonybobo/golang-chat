@@ -64,35 +64,35 @@ func GetUserDetail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": service.UserService.GetUserDetails(uid)})
 }
 
-func GetUserOrGroupByName(ctx *gin.Context) {
-	name := ctx.Param("name")
-	result := service.UserService.GetUsersOrGroupBy(name)
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": result})
-}
+// func GetUserOrGroupByName(ctx *gin.Context) {
+// 	name := ctx.Param("name")
+// 	result := service.UserService.GetUsersOrGroupBy(name)
+// 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": result})
+// }
 
-func AddFriend (ctx *gin.Context) {
-	var request entity.FriendRequest 
-	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
-		return
-	}
+// func AddFriend (ctx *gin.Context) {
+// 	var request entity.FriendRequest 
+// 	if err := ctx.ShouldBindJSON(&request); err != nil {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+// 		return
+// 	}
 
-	if err := service.UserService.AddFriend(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
-}
+// 	if err := service.UserService.AddFriend(&request); err != nil {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+// 		return
+// 	}
+// 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+// }
 
-func GetFriends(ctx *gin.Context) {
-	uid := ctx.Query("uid")
+// func GetFriends(ctx *gin.Context) {
+// 	uid := ctx.Query("uid")
 
-	friends , err := service.UserService.GetFriends(uid)
+// 	friends , err := service.UserService.GetFriends(uid)
 
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
-		return
-	}
+// 	if err != nil {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : friends})
-}
+// 	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : friends})
+// }

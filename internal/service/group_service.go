@@ -1,99 +1,153 @@
 package service
 
 import (
+	"context"
 	"errors"
+
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
+	"github.com/tonybobo/go-chat/pkg/global/log"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type groupService struct{}
 
 var GroupSerivce = new(groupService)
 
-func (g *groupService) GetGroups(uid string) ([]entity.GroupResponse , error) {
+func (g *groupService) GetGroups(uid string) ([]primitive.M , error) {
 	db := repository.GetDB()
+	ctx ,cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	defer cancel()
 
 	var queryUser *entity.User
-	result := db.First(&queryUser , "uid = ?" , uid)
-	if result.RowsAffected == 0 {
-		return nil , errors.New("no user found")
+	query := bson.D{{Key: "uid" , Value: uid}}
+	if err := db.Collection("users").FindOne(ctx , query).Decode(&queryUser); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil , errors.New("No user found")
+		}
+		return nil , err
+	} 
+	
+
+	var groups []primitive.M
+
+	match := bson.D{
+		{Key: "$match" , Value: bson.D{{Key: "userId" , Value: queryUser.Uid}}},
 	}
 
-	var groups []entity.GroupResponse
+	lookUp := bson.D{
+		{
+			Key: "$lookup" , Value: bson.D{
+				{Key: "from" , Value: "groups"},
+				{Key: "localField" , Value: "groupId"},
+				{Key: "foreignField" , Value: "uid"},
+				{Key: "as" , Value: "groupChat"},
+			},
+		},
+	}
 
-	db.Raw("SELECT g.id AS group_id , g.uid , g.created_at , g.name , g.notice FROM group_members AS gm LEFT JOIN group_chats as g ON gm.group_id = g.id WHERE gm.user_id = ? " , queryUser.Id).Scan(&groups)
+	group := bson.D{
+		{Key: "$group" , Value: bson.D{
+			{Key: "_id" , Value: "$userId"},
+			{Key:"group" , Value: bson.D{{Key: "$push" ,Value:  bson.M{"$first" :"$$ROOT.groupChat"}}}},
+		},
+	},
+	}
+
+	
+	result , err := db.Collection("groupMembers").Aggregate(ctx , mongo.Pipeline{match , lookUp , group})
+
+	if err != nil {
+		log.Logger.Error("aggregation" , log.Any("Error" , err))
+	}
+
+	if err = result.All(ctx , &groups); err != nil {
+		log.Logger.Error("aggregation" , log.Any("Error" , err))
+	}
 
 	return groups , nil
 }
 
 func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	db := repository.GetDB()
+	ctx ,cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	defer cancel()
 	var user entity.User
-	result := db.Find(&user, "uid = ?", uid)
-	if result.RowsAffected == 0 {
-		return errors.New("no user with this uid exist")
+	query := bson.D{{Key:"uid" , Value: uid}}
+	if err := db.Collection("users").FindOne(ctx , query).Decode(&user); err != nil {
+		return err
 	}
-	group.UserId = user.Id
+	group.ID = primitive.NewObjectID()
+	group.UserId = user.Uid
+	group.CreatedAt = time.Now()
+	group.UpdatedAt = time.Now()
 	group.Uid = uuid.New().String()
-	db.Save(&group)
+	db.Collection("groups").InsertOne(ctx , &group)
 
-	groupMember := entity.GroupMember{
-		UserId:  user.Id,
-		GroupId: group.ID,
+	groupMember := &entity.GroupMember{
+		ID: primitive.NewObjectID(),
+		UserId:  user.Uid,
+		GroupId: group.Uid,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 		Name:    user.Username,
 		Mute:    false,
 	}
-	db.Save(&groupMember)
+	_ , err := db.Collection("groupMembers").InsertOne(ctx ,&groupMember)
+	log.Logger.Error("error" , log.Any("error" , err))
 	return nil
 }
 
-func (g *groupService) JoinGroup(userUid string , groupUid string) error {
-	var user entity.User
-	db := repository.GetDB()
-	userResult := db.First(&user,"uid = ?" , userUid)
-	if userResult.RowsAffected == 0 {
-		return errors.New("no user found")
-	}
+// func (g *groupService) JoinGroup(userUid string , groupUid string) error {
+// 	var user entity.User
+// 	db := repository.GetDB()
+// 	userResult := db.First(&user,"uid = ?" , userUid)
+// 	if userResult.RowsAffected == 0 {
+// 		return errors.New("no user found")
+// 	}
 
-	var group entity.GroupChat 
-	groupResult := db.First(&group , "uid = ?" , groupUid)
-	if groupResult.RowsAffected == 0 {
-		return errors.New("no group found")
-	}
+// 	var group entity.GroupChat
+// 	groupResult := db.First(&group , "uid = ?" , groupUid)
+// 	if groupResult.RowsAffected == 0 {
+// 		return errors.New("no group found")
+// 	}
 
-	var groupMember entity.GroupMember
-	memberResult := db.First(&groupMember , "user_id = ? AND group_id = ?" , user.Id , group.ID )
-	if memberResult.RowsAffected > 0 {
-		return errors.New("user has been added in the group previously")
-	}
-	name := user.Name
-	if name == ""{
-		name = user.Username
-	}
+// 	var groupMember entity.GroupMember
+// 	memberResult := db.First(&groupMember , "user_id = ? AND group_id = ?" , user.Id , group.ID )
+// 	if memberResult.RowsAffected > 0 {
+// 		return errors.New("user has been added in the group previously")
+// 	}
+// 	name := user.Name
+// 	if name == ""{
+// 		name = user.Username
+// 	}
 
-	insert := &entity.GroupMember{
-		UserId: user.Id,
-		GroupId: group.ID,
-		Name: name,
-		Mute: false,
-	}
-	db.Create(&insert)
+// 	insert := &entity.GroupMember{
+// 		UserId: user.Id,
+// 		GroupId: group.ID,
+// 		Name: name,
+// 		Mute: false,
+// 	}
+// 	db.Create(&insert)
 
-	return nil
-}
+// 	return nil
+// }
 
-func (g *groupService) GetGroupUsers(uid string) (*[]entity.User , error) {
-	var group entity.GroupChat
-	db := repository.GetDB()
-	result := db.First(&group , "uid = ? " , uid)
-	if result.RowsAffected == 0 {
-		return nil , errors.New("no group found")
-	} 
+// func (g *groupService) GetGroupUsers(uid string) (*[]entity.User , error) {
+// 	var group entity.GroupChat
+// 	db := repository.GetDB()
+// 	result := db.First(&group , "uid = ? " , uid)
+// 	if result.RowsAffected == 0 {
+// 		return nil , errors.New("no group found")
+// 	}
 
-	var user *[]entity.User 
-	db.Raw("SELECT u.uid , u.avatar , u.username FROM group_chats AS g JOIN group_members as gm ON gm.group_id = g.id JOIN users as u ON u.id = gm.user_id WHERE g.id = ?" , group.ID).Scan(&user)
+// 	var user *[]entity.User
+// 	db.Raw("SELECT u.uid , u.avatar , u.username FROM group_chats AS g JOIN group_members as gm ON gm.group_id = g.id JOIN users as u ON u.id = gm.user_id WHERE g.id = ?" , group.ID).Scan(&user)
 
-	return user , nil
-}
+// 	return user , nil
+// }

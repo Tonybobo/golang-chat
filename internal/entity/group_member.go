@@ -12,7 +12,7 @@ type GroupMember struct {
 	UpdatedAt time.Time     `json:"updatedAt" bson:"updatedAt"`
 	DeletedAt bool `json:"deletedAt" bson:"deletedAt"  `
 	UserId string `json:"userId" bson:"userId"`
-	GroupId string `json:"groupId" bson:"userId"`
+	GroupId string `json:"groupId" bson:"groupId"`
 	Name string `json:"name" bson:"name"`
 	Mute bool `json:"mute" bson:"mute"`
 }
