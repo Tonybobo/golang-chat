@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/tonybobo/go-chat/internal/entity"
@@ -13,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type userService struct{}
@@ -25,13 +28,13 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 		return nil, errors.New("password not match")
 	}
 	db := repository.GetDB().Collection("users")
-	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	query := bson.D{{Key: "username" , Value: register.Username}}
-	count , err := db.CountDocuments(ctx , query)
+	query := bson.D{{Key: "username", Value: register.Username}}
+	count, err := db.CountDocuments(ctx, query)
 	if err != nil {
-		log.Logger.Error("Fail to Count Document" , log.Any("Error" , err))
+		log.Logger.Error("Fail to Count Document", log.Any("Error", err))
 	}
 	if count > 0 {
 		return nil, errors.New("Username is taken.")
@@ -55,15 +58,14 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 	db := repository.GetDB().Collection("users")
 	var queryUser *entity.User
-	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	query := bson.D{{Key: "username" , Value: login.Username}}
-	if err:= db.FindOne(ctx , query).Decode(&queryUser); err != nil{
-		return nil , false
+	query := bson.D{{Key: "username", Value: login.Username}}
+	if err := db.FindOne(ctx, query).Decode(&queryUser); err != nil {
+		return nil, false
 	}
 
-	
 	if err := utils.VerifyPassword(queryUser.Password, login.Password); err != nil {
 		return nil, false
 	} else {
@@ -74,18 +76,18 @@ func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 func (u *userService) EditUserDetail(user *entity.EditUser) error {
 	var queryUser *entity.User
 	db := repository.GetDB().Collection("users")
-	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	filter := bson.D{{Key: "username" , Value: user.Username}}
+	filter := bson.D{{Key: "username", Value: user.Username}}
 	update := bson.D{
-		{Key:"$set" , Value: bson.D{
-			{Key: "name" , Value: user.Name  },
-			{Key: "email" , Value: user.Email  },
+		{Key: "$set", Value: bson.D{
+			{Key: "name", Value: user.Name},
+			{Key: "email", Value: user.Email},
 		}},
 	}
-	
-	if err:= db.FindOneAndUpdate(ctx , filter , update).Decode(&queryUser); err != nil{
+
+	if err := db.FindOneAndUpdate(ctx, filter, update).Decode(&queryUser); err != nil {
 		return err
 	}
 	return nil
@@ -94,69 +96,210 @@ func (u *userService) EditUserDetail(user *entity.EditUser) error {
 func (u *userService) GetUserDetails(uid string) *entity.User {
 	var user *entity.User
 	db := repository.GetDB().Collection("users")
-	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	query := bson.D{{Key: "uid" , Value: uid}}
-	if err:= db.FindOne(ctx , query).Decode(&user); err != nil{
+	query := bson.D{{Key: "uid", Value: uid}}
+	if err := db.FindOne(ctx, query).Decode(&user); err != nil {
 		return nil
 	}
 	return user
 }
 
-// func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
-// 	var queryUser []entity.User
-// 	db := repository.GetDB()
-// 	db.Raw("SELECT uid , username , name , avatar FROM users WHERE name LIKE ?", fmt.Sprintf("%%%s%%", name)).Scan(&queryUser)
-// 	var queryGroup []entity.GroupChat
-// 	db.Raw("SELECT uid , name FROM group_chats WHERE name LIKE ?", fmt.Sprintf("%%%s%%", name)).Scan(&queryGroup)
+func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
+	var queryUser []entity.User
+	db := repository.GetDB()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	users, err := db.Collection("users").Find(ctx, bson.D{{Key: "username", Value: bson.D{{Key: "$regex", Value: name}, {Key: "$options", Value: "i"}}}})
+	if err != nil {
+		log.Logger.Error("error using text search", log.Any("error", err))
+	}
 
-// 	return &entity.SearchResponse{
-// 		User:  queryUser,
-// 		Group: queryGroup,
-// 	}
-// }
+	if err := users.All(ctx, &queryUser); err != nil {
+		log.Logger.Error("error using text search", log.Any("error", err))
+	}
+	var queryGroup []entity.GroupChat
 
-// func (u *userService) AddFriend(request *entity.FriendRequest) error {
-// 	var user *entity.User
-// 	db := repository.GetDB()
-// 	result := db.First(&user , "uid = ?" , request.Uid)
-// 	if result.RowsAffected == 0 {
-// 		return errors.New("no user found")
-// 	}
+	groups, err := db.Collection("groups").Find(ctx, bson.D{{Key: "name", Value: bson.D{{Key: "$regex", Value: name}, {Key: "$options", Value: "i"}}}})
 
-// 	var friend *entity.User
-// 	result2:= db.First(&friend , "uid = ?" , request.FriendUid)
-// 	if result2.RowsAffected ==  0 {
-// 		return errors.New("no user found")
-// 	}
+	if err != nil {
+		log.Logger.Error("error using text search", log.Any("error", err))
+	}
 
-// 	var userFriend *entity.UserFriend
-// 	result3 := db.First(&userFriend , "user_id = ? AND friend_id = ?" , user.Id , friend.Id)
+	if err := groups.All(ctx, &queryGroup); err != nil {
+		log.Logger.Error("error using text search", log.Any("error", err))
+	}
 
-// 	if result3.RowsAffected > 0 {
-// 		return errors.New("user has been added to your friend list")
-// 	}
+	return &entity.SearchResponse{
+		User:  queryUser,
+		Group: queryGroup,
+	}
+}
 
-// 	addFriend := &entity.UserFriend{
-// 		UserId: user.Id,
-// 		FriendId: friend.Id,
-// 	}
+func (u *userService) AddFriend(request *entity.FriendRequest) error {
+	var user *entity.User
+	db := repository.GetDB()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: request.Uid}}).Decode(&user); err != nil {
+		return err
+	}
 
-// 	db.Create(&addFriend)
-// 	return nil
-// }
+	var friend *entity.User
+	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: request.FriendUid}}).Decode(&friend); err != nil {
+		return err
+	}
 
-// func (u *userService) GetFriends (uid string) (*[]entity.User , error) {
-// 	db := repository.GetDB()
-// 	var user *entity.User 
-// 	result := db.First(&user , "uid = ?" , uid)
-// 	if result.RowsAffected == 0 {
-// 		return nil , errors.New("no user found")
-// 	} 
+	count, err := db.Collection("userFriend").CountDocuments(ctx, bson.D{
+		{Key: "$and", Value: bson.A{bson.M{"userId": user.Uid}, bson.M{"friendId": friend.Uid}}},
+	})
 
-// 	var friends *[]entity.User
+	if err != nil {
+		log.Logger.Error("error ", log.Any("error :", err))
+		return err
+	}
+	if count > 0 {
+		log.Logger.Error("error ", log.String("error :", "already friend"))
+		return errors.New("user has been added to your friend list")
+	}
 
-// 	db.Raw("SELECT u.uid , u.username , u.avatar FROM user_friends as uf JOIN users as u ON uf.friend_id = u.id WHERE uf.user_id = ?" , user.Id).Scan(&friends)
-// 	return friends , nil
-// }
+	addFriend := &entity.UserFriend{
+		Id:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserId:    user.Uid,
+		FriendId:  friend.Uid,
+	}
+	db.Collection("userFriend").InsertOne(ctx, &addFriend)
+
+	return nil
+}
+
+func (u *userService) GetFriends(uid string) ([]primitive.M, error) {
+	db := repository.GetDB()
+	var user *entity.User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: uid}}).Decode(&user); err != nil {
+		log.Logger.Error("error", log.Any("Get Friends", err))
+		return nil, err
+	}
+
+	match := bson.D{{Key: "$match", Value: bson.D{{Key: "userId", Value: user.Uid}}}}
+	lookUp := bson.D{
+		{
+			Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: "users"},
+				{Key: "localField", Value: "friendId"},
+				{Key: "foreignField", Value: "uid"},
+				{Key: "pipeline", Value: bson.A{
+					bson.M{"$project": bson.D{
+						{Key: "_id", Value: 0},
+						{Key: "createdAt", Value: 0},
+						{Key: "updatedAt", Value: 0},
+						{Key: "deletedAt", Value: 0},
+						{Key: "password", Value: 0},
+					}},
+				}},
+				{Key: "as", Value: "friends"},
+			},
+		},
+	}
+
+	group := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$userId"},
+			{Key: "friends", Value: bson.D{{Key: "$push", Value: bson.M{"$first": "$$ROOT.friends"}}}},
+		},
+		},
+	}
+
+	project := bson.D{
+		{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "friends", Value: "$friends"},
+		}},
+	}
+
+	match1 := bson.D{{Key: "$match", Value: bson.D{{Key: "friendId", Value: user.Uid}}}}
+	lookUp1 := bson.D{
+		{
+			Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: "users"},
+				{Key: "localField", Value: "userId"},
+				{Key: "foreignField", Value: "uid"},
+				{Key: "pipeline", Value: bson.A{
+					bson.M{"$project": bson.D{
+						{Key: "_id", Value: 0},
+						{Key: "createdAt", Value: 0},
+						{Key: "updatedAt", Value: 0},
+						{Key: "deletedAt", Value: 0},
+						{Key: "password", Value: 0},
+					}},
+				}},
+				{Key: "as", Value: "friends"},
+			},
+		},
+	}
+
+	group1 := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$userId"},
+			{Key: "friends", Value: bson.D{{Key: "$push", Value: bson.M{"$first": "$$ROOT.friends"}}}},
+		},
+		},
+	}
+
+	result, err := db.Collection("userFriend").Aggregate(ctx, mongo.Pipeline{match, lookUp, group, project})
+
+	if err != nil {
+		log.Logger.Error("aggregation", log.Any("Error", err))
+	}
+
+	var allFriends []primitive.M
+
+	for result.Next(ctx) {
+		var res bson.M
+		if err := result.Decode(&res); err != nil {
+			log.Logger.Error("error", log.Any("error :", err))
+		}
+		fmt.Println(res)
+		if res != nil {
+			for _, value := range res["friends"].(primitive.A) {
+				fmt.Println(value)
+
+				allFriends = append(allFriends, value.(primitive.M))
+			}
+		}
+
+	}
+
+	result1, err := db.Collection("userFriend").Aggregate(ctx, mongo.Pipeline{match1, lookUp1, group1, project})
+
+	if err != nil {
+		log.Logger.Error("aggregation", log.Any("Error", err))
+	}
+
+	for result1.Next(ctx) {
+		var res bson.M
+		if err := result1.Decode(&res); err != nil {
+			log.Logger.Error("error", log.Any("error :", err))
+		}
+		fmt.Println(res)
+
+		if res != nil {
+			for _, value := range res["friends"].(primitive.A) {
+				fmt.Println(value)
+				res := reflect.TypeOf(value)
+				fmt.Print(res)
+				allFriends = append(allFriends, value.(primitive.M))
+			}
+		}
+
+	}
+
+	return allFriends, nil
+}

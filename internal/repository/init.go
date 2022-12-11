@@ -15,38 +15,41 @@ var _db *mongo.Database
 
 func init() {
 
-
 	username := config.GetConfig().Mongo.Username
 	password := config.GetConfig().Mongo.Password
 	database := config.GetConfig().Mongo.Database
 
-
 	dsn := fmt.Sprintf("mongodb+srv://%s:%s@cluster0.bkuvj3e.mongodb.net/?retryWrites=true&w=majority", username, password)
 
-	client , err := mongo.NewClient(options.Client().ApplyURI(dsn))
+	client, err := mongo.NewClient(options.Client().ApplyURI(dsn))
 
 	if err != nil {
 		panic("Fail to connect to DB err:" + err.Error())
 	}
 
-	ctx , cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 	err = client.Connect(ctx)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
-	
-	
+
 	_db = client.Database(database)
 
 	index := []mongo.IndexModel{
 		{
-			Keys: bson.D{{Key :"username" , Value: 1 }},
+			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
-			Keys: bson.D{{Key:"name" ,Value:"text" }},
+			Keys: bson.D{{Key: "username", Value: "text"}},
+		},
+	}
+
+	index2 := []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key: "name", Value: "text"}},
 		},
 	}
 	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
@@ -57,9 +60,14 @@ func init() {
 		opts,
 	)
 
-	
+	_db.Collection("groups").Indexes().CreateMany(
+		ctx,
+		index2,
+		opts,
+	)
+
 }
 
-func GetDB() *mongo.Database  {
+func GetDB() *mongo.Database {
 	return _db
 }

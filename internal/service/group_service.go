@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 
 	"time"
 
@@ -19,67 +21,65 @@ type groupService struct{}
 
 var GroupSerivce = new(groupService)
 
-func (g *groupService) GetGroups(uid string) ([]primitive.M , error) {
+func (g *groupService) GetGroups(uid string) ([]primitive.M, error) {
 	db := repository.GetDB()
-	ctx ,cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var queryUser *entity.User
-	query := bson.D{{Key: "uid" , Value: uid}}
-	if err := db.Collection("users").FindOne(ctx , query).Decode(&queryUser); err != nil {
+	query := bson.D{{Key: "uid", Value: uid}}
+	if err := db.Collection("users").FindOne(ctx, query).Decode(&queryUser); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil , errors.New("No user found")
+			return nil, errors.New("No user found")
 		}
-		return nil , err
-	} 
-	
+		return nil, err
+	}
 
 	var groups []primitive.M
 
 	match := bson.D{
-		{Key: "$match" , Value: bson.D{{Key: "userId" , Value: queryUser.Uid}}},
+		{Key: "$match", Value: bson.D{{Key: "userId", Value: queryUser.Uid}}},
 	}
 
 	lookUp := bson.D{
 		{
-			Key: "$lookup" , Value: bson.D{
-				{Key: "from" , Value: "groups"},
-				{Key: "localField" , Value: "groupId"},
-				{Key: "foreignField" , Value: "uid"},
-				{Key: "as" , Value: "groupChat"},
+			Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: "groups"},
+				{Key: "localField", Value: "groupId"},
+				{Key: "foreignField", Value: "uid"},
+				{Key: "as", Value: "groupChat"},
 			},
 		},
 	}
 
 	group := bson.D{
-		{Key: "$group" , Value: bson.D{
-			{Key: "_id" , Value: "$userId"},
-			{Key:"group" , Value: bson.D{{Key: "$push" ,Value:  bson.M{"$first" :"$$ROOT.groupChat"}}}},
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$userId"},
+			{Key: "group", Value: bson.D{{Key: "$push", Value: bson.M{"$first": "$$ROOT.groupChat"}}}},
 		},
-	},
+		},
 	}
 
-	
-	result , err := db.Collection("groupMembers").Aggregate(ctx , mongo.Pipeline{match , lookUp , group})
+	result, err := db.Collection("groupMembers").Aggregate(ctx, mongo.Pipeline{match, lookUp, group})
 
 	if err != nil {
-		log.Logger.Error("aggregation" , log.Any("Error" , err))
+		log.Logger.Error("aggregation", log.Any("Error", err))
 	}
 
-	if err = result.All(ctx , &groups); err != nil {
-		log.Logger.Error("aggregation" , log.Any("Error" , err))
+	if err = result.All(ctx, &groups); err != nil {
+		log.Logger.Error("aggregation", log.Any("Error", err))
 	}
 
-	return groups , nil
+	return groups, nil
 }
 
 func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	db := repository.GetDB()
-	ctx ,cancel := context.WithTimeout(context.Background() , 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var user entity.User
-	query := bson.D{{Key:"uid" , Value: uid}}
-	if err := db.Collection("users").FindOne(ctx , query).Decode(&user); err != nil {
+	query := bson.D{{Key: "uid", Value: uid}}
+	if err := db.Collection("users").FindOne(ctx, query).Decode(&user); err != nil {
 		return err
 	}
 	group.ID = primitive.NewObjectID()
@@ -87,67 +87,133 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	group.CreatedAt = time.Now()
 	group.UpdatedAt = time.Now()
 	group.Uid = uuid.New().String()
-	db.Collection("groups").InsertOne(ctx , &group)
+	db.Collection("groups").InsertOne(ctx, &group)
 
 	groupMember := &entity.GroupMember{
-		ID: primitive.NewObjectID(),
-		UserId:  user.Uid,
-		GroupId: group.Uid,
+		ID:        primitive.NewObjectID(),
+		UserId:    user.Uid,
+		GroupId:   group.Uid,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Name:    user.Username,
-		Mute:    false,
+		Name:      user.Username,
+		Mute:      false,
 	}
-	_ , err := db.Collection("groupMembers").InsertOne(ctx ,&groupMember)
-	log.Logger.Error("error" , log.Any("error" , err))
+	_, err := db.Collection("groupMembers").InsertOne(ctx, &groupMember)
+	log.Logger.Error("error", log.Any("error", err))
 	return nil
 }
 
-// func (g *groupService) JoinGroup(userUid string , groupUid string) error {
-// 	var user entity.User
-// 	db := repository.GetDB()
-// 	userResult := db.First(&user,"uid = ?" , userUid)
-// 	if userResult.RowsAffected == 0 {
-// 		return errors.New("no user found")
-// 	}
+func (g *groupService) JoinGroup(userUid string, groupUid string) error {
+	var user *entity.User
+	db := repository.GetDB()
 
-// 	var group entity.GroupChat
-// 	groupResult := db.First(&group , "uid = ?" , groupUid)
-// 	if groupResult.RowsAffected == 0 {
-// 		return errors.New("no group found")
-// 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-// 	var groupMember entity.GroupMember
-// 	memberResult := db.First(&groupMember , "user_id = ? AND group_id = ?" , user.Id , group.ID )
-// 	if memberResult.RowsAffected > 0 {
-// 		return errors.New("user has been added in the group previously")
-// 	}
-// 	name := user.Name
-// 	if name == ""{
-// 		name = user.Username
-// 	}
+	defer cancel()
 
-// 	insert := &entity.GroupMember{
-// 		UserId: user.Id,
-// 		GroupId: group.ID,
-// 		Name: name,
-// 		Mute: false,
-// 	}
-// 	db.Create(&insert)
+	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: userUid}}).Decode(&user); err != nil {
+		log.Logger.Error("error", log.Any("error :", err))
+	}
 
-// 	return nil
-// }
+	var group *entity.GroupChat
 
-// func (g *groupService) GetGroupUsers(uid string) (*[]entity.User , error) {
-// 	var group entity.GroupChat
-// 	db := repository.GetDB()
-// 	result := db.First(&group , "uid = ? " , uid)
-// 	if result.RowsAffected == 0 {
-// 		return nil , errors.New("no group found")
-// 	}
+	if err := db.Collection("groups").FindOne(ctx, bson.D{{Key: "uid", Value: groupUid}}).Decode(&group); err != nil {
+		log.Logger.Error("error", log.Any("error :", err))
+	}
 
-// 	var user *[]entity.User
-// 	db.Raw("SELECT u.uid , u.avatar , u.username FROM group_chats AS g JOIN group_members as gm ON gm.group_id = g.id JOIN users as u ON u.id = gm.user_id WHERE g.id = ?" , group.ID).Scan(&user)
+	var groupMember *entity.GroupMember
 
-// 	return user , nil
-// }
+	if err := db.Collection("groupMembers").FindOne(ctx, bson.D{
+		{Key: "$and", Value: bson.A{
+			bson.M{"userId": user.Uid},
+			bson.M{"groupId": group.Uid},
+		}},
+	}).Decode(&groupMember); err != nil {
+		log.Logger.Error("error", log.Any("error :", err))
+	}
+
+	name := user.Name
+	if name == "" {
+		name = user.Username
+	}
+
+	insert := &entity.GroupMember{
+		ID:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserId:    user.Uid,
+		GroupId:   group.Uid,
+		Name:      name,
+		Mute:      false,
+	}
+	db.Collection("groupMembers").InsertOne(ctx, &insert)
+
+	return nil
+}
+
+func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
+	var group *entity.GroupChat
+	db := repository.GetDB()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.Collection("groups").FindOne(ctx, bson.D{{Key: "uid", Value: uid}}).Decode(&group); err != nil {
+		return nil, err
+	}
+
+	match := bson.D{
+		{Key: "$match", Value: bson.D{{Key: "groupId", Value: group.Uid}}},
+	}
+
+	lookUp := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "users"},
+			{Key: "localField", Value: "userId"},
+			{Key: "foreignField", Value: "uid"},
+			{Key: "pipeline", Value: bson.A{
+				bson.M{"$project": bson.D{
+					{Key: "_id", Value: 0},
+					{Key: "createdAt", Value: 0},
+					{Key: "updatedAt", Value: 0},
+					{Key: "deletedAt", Value: 0},
+					{Key: "password", Value: 0},
+				}},
+			}},
+			{Key: "as", Value: "members"},
+		}},
+	}
+
+	groupStage := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$groupId"},
+			{Key: "members", Value: bson.D{{Key: "$push", Value: bson.M{"$first": "$$ROOT.members"}}}},
+		},
+		},
+	}
+
+	result, err := db.Collection("groupMembers").Aggregate(ctx, mongo.Pipeline{match, lookUp, groupStage})
+
+	if err != nil {
+		log.Logger.Error("aggregation", log.Any("Error", err))
+	}
+
+	var members []primitive.M
+
+	for result.Next(ctx) {
+		var res bson.M
+		if err := result.Decode(&res); err != nil {
+			log.Logger.Error("aggregation Decoding", log.Any("Error", err))
+		}
+		if res != nil {
+			for _, value := range res["members"].(primitive.A) {
+				fmt.Println(value)
+				res := reflect.TypeOf(value)
+				fmt.Print(res)
+				members = append(members, value.(primitive.M))
+			}
+		}
+	}
+
+	return members, nil
+}
