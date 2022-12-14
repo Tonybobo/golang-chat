@@ -44,17 +44,14 @@ func Register(ctx *gin.Context) {
 }
 
 func EditUserDetail(ctx *gin.Context) {
-	var user entity.EditUser
 
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
-		return
-	}
-	if err := service.UserService.EditUserDetail(&user); err != nil {
+	user, err := service.UserService.EditUserDetail(ctx)
+
+	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "Error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "Message": "User Detail has been updated"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "user": user})
 
 }
 

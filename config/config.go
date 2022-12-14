@@ -13,12 +13,13 @@ type Config struct {
 	Log            LogConfig
 	MsgChannelType MsgChannelType
 	Token          Token
+	GCP            GcpConfig
 }
 
 type MongoConfig struct {
-	Username        string
-	Password    string
-	Database 	string
+	Username string
+	Password string
+	Database string
 }
 
 type LogConfig struct {
@@ -36,6 +37,13 @@ type MsgChannelType struct {
 	ChannelType string
 	KafkaHost   string
 	KafkaTopic  string
+}
+
+type GcpConfig struct {
+	Bucket        string
+	ProjectID     string
+	URL           string
+	DefaultAvatar string
 }
 
 var c Config

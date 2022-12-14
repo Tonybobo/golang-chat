@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/tonybobo/go-chat/config"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
 	"github.com/tonybobo/go-chat/pkg/common/utils"
@@ -16,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type userService struct{}
@@ -50,6 +53,7 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 	newUser.Email = register.Email
 	newUser.Password = hashPassword
 	newUser.Uid = uuid.New().String()
+	newUser.Avatar = config.GetConfig().GCP.DefaultAvatar
 
 	db.InsertOne(ctx, &newUser)
 	return &newUser, nil
@@ -73,24 +77,70 @@ func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 	}
 }
 
-func (u *userService) EditUserDetail(user *entity.EditUser) error {
+func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
 	var queryUser *entity.User
+	err := c.Request.ParseMultipartForm(32 << 20)
+	if err != nil {
+		log.Logger.Error("Parse Form error", log.Any("error", err))
+		return nil, err
+	}
+
+	username := c.Request.PostFormValue("username")
+	name := c.Request.PostFormValue("name")
+	email := c.Request.PostFormValue("email")
+
 	db := repository.GetDB().Collection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	filter := bson.D{{Key: "username", Value: user.Username}}
+	filter := bson.D{{Key: "username", Value: username}}
+
+	if err := db.FindOne(ctx, filter).Decode(&queryUser); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+
+	// Delete Original Avatar
+
+	if queryUser.Avatar != config.GetConfig().GCP.DefaultAvatar {
+		if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
+			return nil, err
+		}
+	}
+
+	//Update New Avatar
+
+	f, uploadedFile, err := c.Request.FormFile("avatar")
+	if err != nil {
+		log.Logger.Error("Parse Form error", log.Any("error", err))
+		return nil, err
+	}
+	defer f.Close()
+
+	avatar, err := utils.Uploader.UploadImage(f, "avatar/"+uploadedFile.Filename)
+	fmt.Println(avatar)
+
+	if err != nil {
+		return nil, err
+	}
+
 	update := bson.D{
 		{Key: "$set", Value: bson.D{
-			{Key: "name", Value: user.Name},
-			{Key: "email", Value: user.Email},
+			{Key: "name", Value: name},
+			{Key: "email", Value: email},
+			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
 		}},
 	}
 
-	if err := db.FindOneAndUpdate(ctx, filter, update).Decode(&queryUser); err != nil {
-		return err
+	var updatedUser *entity.User
+
+	if err := db.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedUser); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
 	}
-	return nil
+
+	return updatedUser, nil
+
 }
 
 func (u *userService) GetUserDetails(uid string) *entity.User {
