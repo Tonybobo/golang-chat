@@ -30,6 +30,7 @@ func NewRouter() *gin.Engine {
 		group.GET("/user/:uid", v1.GetUserDetail)
 		group.GET("/socket.io", socket)
 		group.GET("/search/:name", v1.GetUserOrGroupByName)
+		group.POST("/user/upload" , v1.UploadUserAvatar)
 
 		group.POST("/user/add", v1.AddFriend)
 		group.GET("/user/friends", v1.GetFriends)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -77,6 +78,60 @@ func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 	}
 }
 
+func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
+	var queryUser *entity.User
+	err := c.Request.ParseMultipartForm(32 << 20)
+	if err != nil {
+		log.Logger.Error("Parse Form error", log.Any("error", err))
+		return nil, err
+	}
+
+	username := c.Request.PostFormValue("username")
+
+	db := repository.GetDB().Collection("users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.D{{Key: "username", Value: username}}
+
+	if err := db.FindOne(ctx, filter).Decode(&queryUser); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+
+
+	f, uploadedFile, _ := c.Request.FormFile("avatar")
+	
+	defer f.Close()
+
+
+	if strings.Split(queryUser.Avatar, "avatar/")[1] == uploadedFile.Filename  {
+		return nil , errors.New("same filename")
+	}
+
+	if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
+			return nil , err
+	}
+	avatar, err := utils.Uploader.UploadImage(f, "avatar/"+uploadedFile.Filename)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var updatedUser *entity.User 
+
+	update :=  bson.D{{Key: "$set", Value: bson.D{
+			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
+	}}}
+
+	if err := db.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedUser); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+
+	return updatedUser , nil 
+}
+
 func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
 	var queryUser *entity.User
 	err := c.Request.ParseMultipartForm(32 << 20)
@@ -95,42 +150,19 @@ func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
 
 	filter := bson.D{{Key: "username", Value: username}}
 
+
 	if err := db.FindOne(ctx, filter).Decode(&queryUser); err != nil {
 		log.Logger.Error("error", log.Any("error", err))
 		return nil, err
 	}
 
-	// Delete Original Avatar
-
-	if queryUser.Avatar != config.GetConfig().GCP.DefaultAvatar {
-		if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
-			return nil, err
-		}
-	}
-
-	//Update New Avatar
-
-	f, uploadedFile, err := c.Request.FormFile("avatar")
-	if err != nil {
-		log.Logger.Error("Parse Form error", log.Any("error", err))
-		return nil, err
-	}
-	defer f.Close()
-
-	avatar, err := utils.Uploader.UploadImage(f, "avatar/"+uploadedFile.Filename)
-	fmt.Println(avatar)
-
-	if err != nil {
-		return nil, err
-	}
-
 	update := bson.D{
-		{Key: "$set", Value: bson.D{
-			{Key: "name", Value: name},
-			{Key: "email", Value: email},
-			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
-		}},
-	}
+			{Key: "$set", Value: bson.D{
+				{Key: "name", Value: name},
+				{Key: "email", Value: email},
+			}},
+		}
+
 
 	var updatedUser *entity.User
 

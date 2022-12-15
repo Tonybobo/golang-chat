@@ -43,6 +43,16 @@ func Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": entity.FilteredResponse(user)})
 }
 
+func UploadUserAvatar(ctx *gin.Context) {
+	user, err := service.UserService.UploadUserAvatar(ctx)
+
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "user": user})
+}
+
 func EditUserDetail(ctx *gin.Context) {
 
 	user, err := service.UserService.EditUserDetail(ctx)
