@@ -84,11 +84,13 @@ func AddFriend(ctx *gin.Context) {
 		return
 	}
 
-	if err := service.UserService.AddFriend(&request); err != nil {
+	friend , err := service.UserService.AddFriend(&request);
+
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : friend})
 }
 
 func GetFriends(ctx *gin.Context) {

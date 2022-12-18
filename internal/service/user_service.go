@@ -219,18 +219,18 @@ func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
 	}
 }
 
-func (u *userService) AddFriend(request *entity.FriendRequest) error {
+func (u *userService) AddFriend(request *entity.FriendRequest) (*entity.User ,error) {
 	var user *entity.User
 	db := repository.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: request.Uid}}).Decode(&user); err != nil {
-		return err
+		return nil , err
 	}
 
 	var friend *entity.User
 	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: request.FriendUid}}).Decode(&friend); err != nil {
-		return err
+		return nil, err
 	}
 
 	count, err := db.Collection("userFriend").CountDocuments(ctx, bson.D{
@@ -239,11 +239,11 @@ func (u *userService) AddFriend(request *entity.FriendRequest) error {
 
 	if err != nil {
 		log.Logger.Error("error ", log.Any("error :", err))
-		return err
+		return nil, err
 	}
 	if count > 0 {
 		log.Logger.Error("error ", log.String("error :", "already friend"))
-		return errors.New("user has been added to your friend list")
+		return nil, errors.New("user has been added to your friend list")
 	}
 
 	addFriend := &entity.UserFriend{
@@ -255,7 +255,7 @@ func (u *userService) AddFriend(request *entity.FriendRequest) error {
 	}
 	db.Collection("userFriend").InsertOne(ctx, &addFriend)
 
-	return nil
+	return friend , nil 
 }
 
 func (u *userService) GetFriends(uid string) ([]primitive.M, error) {

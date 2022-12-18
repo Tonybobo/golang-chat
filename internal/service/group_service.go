@@ -103,7 +103,7 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	return nil
 }
 
-func (g *groupService) JoinGroup(userUid string, groupUid string) error {
+func (g *groupService) JoinGroup(userUid string, groupUid string) (*entity.GroupChat ,error) {
 	var user *entity.User
 	db := repository.GetDB()
 
@@ -121,15 +121,19 @@ func (g *groupService) JoinGroup(userUid string, groupUid string) error {
 		log.Logger.Error("error", log.Any("error :", err))
 	}
 
-	var groupMember *entity.GroupMember
-
-	if err := db.Collection("groupMembers").FindOne(ctx, bson.D{
+	count , err := db.Collection("groupMembers").CountDocuments(ctx, bson.D{
 		{Key: "$and", Value: bson.A{
 			bson.M{"userId": user.Uid},
 			bson.M{"groupId": group.Uid},
 		}},
-	}).Decode(&groupMember); err != nil {
-		log.Logger.Error("error", log.Any("error :", err))
+	})
+
+	if err !=  nil {
+		return nil , err
+	}
+
+	if count > 0 {
+		return nil , errors.New("already a group member ")
 	}
 
 	name := user.Name
@@ -148,7 +152,7 @@ func (g *groupService) JoinGroup(userUid string, groupUid string) error {
 	}
 	db.Collection("groupMembers").InsertOne(ctx, &insert)
 
-	return nil
+	return group ,  nil
 }
 
 func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {

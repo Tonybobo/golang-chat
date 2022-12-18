@@ -39,12 +39,14 @@ func JoinGroup(ctx *gin.Context) {
 	userUid := ctx.Param("userUid")
 	groupUid := ctx.Param("groupUid")
 
-	if err := service.GroupSerivce.JoinGroup(userUid, groupUid); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "error": err.Error()})
+	group , err := service.GroupSerivce.JoinGroup(userUid, groupUid);
+
+	if  err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : group})
 }
 
 func GetGroupUser(ctx *gin.Context) {
