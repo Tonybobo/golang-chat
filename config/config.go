@@ -43,7 +43,8 @@ type GcpConfig struct {
 	Bucket        string
 	ProjectID     string
 	URL           string
-	DefaultAvatar string
+	DefaultUserAvatar string
+	DefaultGroupAvatar string
 }
 
 var c Config

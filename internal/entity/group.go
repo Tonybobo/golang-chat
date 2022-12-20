@@ -16,6 +16,7 @@ type GroupChat struct {
 	UserId    string          `json:"userId" bson:"userId"`
 	Name      string         `json:"name" bson:"name"`
 	Notice    string         `json:"notice" bson:"notice"`
+	Avatar    string             `json:"avatar" bson:"avatar"`
 }
 
 type GroupResponse struct {

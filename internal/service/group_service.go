@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tonybobo/go-chat/config"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
 	"github.com/tonybobo/go-chat/pkg/global/log"
@@ -73,7 +74,7 @@ func (g *groupService) GetGroups(uid string) ([]primitive.M, error) {
 	return groups, nil
 }
 
-func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
+func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) (error) {
 	db := repository.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -82,11 +83,22 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	if err := db.Collection("users").FindOne(ctx, query).Decode(&user); err != nil {
 		return err
 	}
+
+	count , err := db.Collection("groups").CountDocuments(ctx , bson.D{{Key: "name" , Value: group.Name}})
+
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("name has been taken. Please think of a new name")
+	}
+
 	group.ID = primitive.NewObjectID()
 	group.UserId = user.Uid
 	group.CreatedAt = time.Now()
 	group.UpdatedAt = time.Now()
 	group.Uid = uuid.New().String()
+	group.Avatar = config.GetConfig().GCP.DefaultGroupAvatar
 	db.Collection("groups").InsertOne(ctx, &group)
 
 	groupMember := &entity.GroupMember{
@@ -98,7 +110,7 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 		Name:      user.Username,
 		Mute:      false,
 	}
-	_, err := db.Collection("groupMembers").InsertOne(ctx, &groupMember)
+	_, err = db.Collection("groupMembers").InsertOne(ctx, &groupMember)
 	log.Logger.Error("error", log.Any("error", err))
 	return nil
 }

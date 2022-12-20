@@ -32,7 +32,7 @@ func SaveGroup(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success" , "data" : group})
 }
 
 func JoinGroup(ctx *gin.Context) {
@@ -60,3 +60,5 @@ func GetGroupUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": users})
 }
+
+

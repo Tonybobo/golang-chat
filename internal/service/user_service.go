@@ -54,7 +54,7 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 	newUser.Email = register.Email
 	newUser.Password = hashPassword
 	newUser.Uid = uuid.New().String()
-	newUser.Avatar = config.GetConfig().GCP.DefaultAvatar
+	newUser.Avatar = config.GetConfig().GCP.DefaultUserAvatar
 
 	db.InsertOne(ctx, &newUser)
 	return &newUser, nil

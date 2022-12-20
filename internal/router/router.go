@@ -36,7 +36,7 @@ func NewRouter() *gin.Engine {
 		group.GET("/user/friends", v1.GetFriends)
 
 		// //group
-		group.POST("/savegroup/:uid", v1.SaveGroup)
+		group.POST("/group/save/:uid", v1.SaveGroup)
 		group.POST("/group/join/:userUid/:groupUid", v1.JoinGroup)
 		group.GET("/group/:uid", v1.GetGroups)
 		group.GET("/group/user/:uid", v1.GetGroupUser)
