@@ -61,4 +61,25 @@ func GetGroupUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": users})
 }
 
+func UploadGroupAvatar(ctx *gin.Context){
+	group , err := service.GroupSerivce.UploadGroupAvatar(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": group})
+}
+
+func EditGroupDetail(ctx *gin.Context) {
+
+	group, err := service.GroupSerivce.EditGroupDetail(ctx)
+
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": group})
+
+}
+
 

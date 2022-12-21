@@ -5,17 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tonybobo/go-chat/config"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
+	"github.com/tonybobo/go-chat/pkg/common/utils"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type groupService struct{}
@@ -232,4 +236,85 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 	}
 
 	return members, nil
+}
+
+func (g *groupService) UploadGroupAvatar(c *gin.Context) (*entity.GroupChat, error){
+	var queryGroup *entity.GroupChat
+	err := c.Request.ParseMultipartForm(32 << 20)
+	if err != nil {
+		log.Logger.Error("Parse Form error", log.Any("error", err))
+		return nil, err
+	}
+	groupId := c.Param("uid")
+	db := repository.GetDB().Collection("groups")
+	ctx , cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.FindOne(ctx , bson.D{{Key: "uid" , Value: groupId}}).Decode(&queryGroup); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+
+	f , uploadedFile , _ := c.Request.FormFile("avatar")
+
+	defer f.Close()
+
+	if strings.Split(queryGroup.Avatar, "avatar/group/")[1] == uploadedFile.Filename  {
+		return nil , errors.New("same image")
+	}
+
+
+	if queryGroup.Avatar != config.GetConfig().GCP.DefaultGroupAvatar {
+		if err := utils.Uploader.DeleteImage(queryGroup.Avatar); err != nil {
+			return nil , err
+		}
+	}
+
+	avatar, err := utils.Uploader.UploadImage(f, "avatar/group/"+uploadedFile.Filename)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var updatedGroup *entity.GroupChat 
+
+	update :=  bson.D{{Key: "$set", Value: bson.D{
+			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
+	}}}
+
+	if err := db.FindOneAndUpdate(ctx, bson.D{{Key: "uid" , Value: queryGroup.Uid }}, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+
+	return updatedGroup , nil 
+}
+
+func (g* groupService) EditGroupDetail (c *gin.Context) (*entity.GroupChat , error ){
+	
+	uid := c.Param("uid")
+	name := c.Request.PostFormValue("name")
+	notice := c.Request.PostFormValue("notice")
+
+	db := repository.GetDB().Collection("groups")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.D{{Key: "uid", Value: uid}}
+
+	update := bson.D{{
+		Key: "$set" , Value: bson.D{
+			{Key: "name" , Value: name},
+			{Key:"notice" , Value: notice},
+		},
+	}}
+	
+	var updatedGroup *entity.GroupChat
+
+	if err := db.FindOneAndUpdate(ctx , filter , update , options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
+		log.Logger.Error("error", log.Any("error", err))
+		return nil, err
+	}
+	
+	return updatedGroup , nil
 }

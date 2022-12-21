@@ -40,6 +40,8 @@ func NewRouter() *gin.Engine {
 		group.POST("/group/join/:userUid/:groupUid", v1.JoinGroup)
 		group.GET("/group/:uid", v1.GetGroups)
 		group.GET("/group/user/:uid", v1.GetGroupUser)
+		group.POST("/group/upload/:uid" ,v1.UploadGroupAvatar)
+		group.POST("/group/edit/:uid" , v1.EditGroupDetail)
 	}
 
 	return server

@@ -105,14 +105,17 @@ func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
 	defer f.Close()
 
 
-	if strings.Split(queryUser.Avatar, "avatar/")[1] == uploadedFile.Filename  {
-		return nil , errors.New("same filename")
+	if strings.Split(queryUser.Avatar, "avatar/user/")[1] == uploadedFile.Filename{
+		return nil , errors.New("same image")
 	}
 
-	if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
+	if queryUser.Avatar != config.GetConfig().GCP.DefaultUserAvatar {
+		if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
 			return nil , err
+		}
 	}
-	avatar, err := utils.Uploader.UploadImage(f, "avatar/"+uploadedFile.Filename)
+	
+	avatar, err := utils.Uploader.UploadImage(f, "avatar/user/"+uploadedFile.Filename)
 
 	if err != nil {
 		return nil, err
@@ -133,12 +136,6 @@ func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
 }
 
 func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
-	var queryUser *entity.User
-	err := c.Request.ParseMultipartForm(32 << 20)
-	if err != nil {
-		log.Logger.Error("Parse Form error", log.Any("error", err))
-		return nil, err
-	}
 
 	username := c.Request.PostFormValue("username")
 	name := c.Request.PostFormValue("name")
@@ -149,12 +146,6 @@ func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
 	defer cancel()
 
 	filter := bson.D{{Key: "username", Value: username}}
-
-
-	if err := db.FindOne(ctx, filter).Decode(&queryUser); err != nil {
-		log.Logger.Error("error", log.Any("error", err))
-		return nil, err
-	}
 
 	update := bson.D{
 			{Key: "$set", Value: bson.D{
