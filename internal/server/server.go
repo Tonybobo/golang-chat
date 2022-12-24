@@ -3,6 +3,7 @@ package server
 import (
 	"sync"
 
+	"github.com/tonybobo/go-chat/internal/service"
 	"github.com/tonybobo/go-chat/pkg/common/constant"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"github.com/tonybobo/go-chat/pkg/protocol"
@@ -54,6 +55,84 @@ func (s *Server) Start() {
 				close(conn.Send)
 				delete(s.Clients, conn.User)
 			}
+		case message := <-s.BroadCast:
+			msg := &protocol.Message{}
+			proto.Unmarshal(message , msg)
+
+			if msg.To != "" {
+				//sending msg
+				if msg.ContentType >= constant.TEXT && msg.ContentType <= constant.VIDEO {
+					//check if sender exist on client map
+					_ , exists := s.Clients[msg.From]
+					if exists {
+						service.MessageService.SaveMessage(msg)
+					}
+					if msg.MessageType == constant.MESSAGE_TYPE_USER {
+						client , online := s.Clients[msg.To]
+						if online {
+							msgByte , err := proto.Marshal(msg)
+
+							if err == nil {
+								client.Send <- msgByte
+							}
+						}
+					}else if msg.MessageType == constant.MESSAGE_TYPE_GROUP {
+						sendGroupMessage(msg ,s)
+					}
+				}
+			}else {
+				//broadcast to all users
+				for name ,client :=  range s.Clients {
+					log.Logger.Info("name" , log.String("client : ", name ))
+
+					select {
+					case client.Send <- message :
+					default:
+						close(client.Send)
+						delete(s.Clients , client.User)
+					}
+				}
+			}
 		}
+	}
+}
+
+func sendGroupMessage(msg *protocol.Message , s *Server) {
+	//get all users in the group
+	users , _ := service.GroupSerivce.GetGroupUsers(msg.To)
+
+	//get sender details 
+	sender := service.UserService.GetUserDetails(msg.From)
+
+	//loop and send 
+	for _ , user := range users {
+		if user["uid"] == msg.From {
+			continue
+		}
+
+		recipient , online := s.Clients[user["uid"].(string)]
+
+		if !online {
+			continue
+		}
+
+		sendMsg := protocol.Message{
+			Avatar: sender.Avatar,
+			FromUsername: msg.FromUsername,
+			From: msg.From,
+			To: msg.To,
+			Content: msg.Content,
+			ContentType: msg.ContentType,
+			Type: msg.Type,
+			Url: msg.Url,
+		}
+
+		msgByte , err := proto.Marshal(&sendMsg)
+
+		if err == nil {
+			recipient.Send <- msgByte
+		}
+
+
 	}
 }

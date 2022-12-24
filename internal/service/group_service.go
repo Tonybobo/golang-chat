@@ -216,6 +216,10 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 
 	if err != nil {
 		log.Logger.Error("aggregation", log.Any("Error", err))
+		if err == mongo.ErrNoDocuments {
+			return nil , nil
+		}
+		return nil , err
 	}
 
 	var members []primitive.M
@@ -224,6 +228,9 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 		var res bson.M
 		if err := result.Decode(&res); err != nil {
 			log.Logger.Error("aggregation Decoding", log.Any("Error", err))
+			if err == mongo.ErrNilDocument {
+				return nil , nil
+			}
 		}
 		if res != nil {
 			for _, value := range res["members"].(primitive.A) {

@@ -1,9 +1,9 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
+	"github.com/tonybobo/go-chat/config"
+	"github.com/tonybobo/go-chat/pkg/common/constant"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"github.com/tonybobo/go-chat/pkg/protocol"
 	"google.golang.org/protobuf/proto"
@@ -32,8 +32,14 @@ func (c *Client) Receiver() {
 
 		msg := &protocol.Message{}
 		proto.Unmarshal(message, msg)
-		log.Logger.Info("Checking message in development", log.Any("message", msg))
-		fmt.Print(msg.Content)
+		
+		if config.GetConfig().MsgChannelType.ChannelType == constant.KAKFA {
+			//send msg to kafka
+			//TODO
+		}else{
+			WebSocketServer.BroadCast <- message 
+		}
+		
 	}
 }
 
@@ -41,7 +47,7 @@ func (c *Client) Writer() {
 	defer func() {
 		c.Conn.Close()
 	}()
-
+	//write message on own websocket
 	for message := range c.Send {
 		c.Conn.WriteMessage(websocket.BinaryMessage, message)
 	}
