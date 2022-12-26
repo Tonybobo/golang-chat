@@ -30,7 +30,7 @@ func NewRouter() *gin.Engine {
 		group.GET("/user/:uid", v1.GetUserDetail)
 		group.GET("/socket.io", socket)
 		group.GET("/search/:name", v1.GetUserOrGroupByName)
-		group.POST("/user/upload" , v1.UploadUserAvatar)
+		group.POST("/user/upload", v1.UploadUserAvatar)
 
 		group.POST("/user/add", v1.AddFriend)
 		group.GET("/user/friends", v1.GetFriends)
@@ -40,8 +40,12 @@ func NewRouter() *gin.Engine {
 		group.POST("/group/join/:userUid/:groupUid", v1.JoinGroup)
 		group.GET("/group/:uid", v1.GetGroups)
 		group.GET("/group/user/:uid", v1.GetGroupUser)
-		group.POST("/group/upload/:uid" ,v1.UploadGroupAvatar)
-		group.POST("/group/edit/:uid" , v1.EditGroupDetail)
+		group.POST("/group/upload/:uid", v1.UploadGroupAvatar)
+		group.POST("/group/edit/:uid", v1.EditGroupDetail)
+
+		//message
+
+		group.GET("/messages", v1.GetMessage)
 	}
 
 	return server
