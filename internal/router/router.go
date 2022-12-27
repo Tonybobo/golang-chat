@@ -45,7 +45,7 @@ func NewRouter() *gin.Engine {
 
 		//message
 
-		group.GET("/messages", v1.GetMessage)
+		group.POST("/messages", v1.GetMessage)
 	}
 
 	return server

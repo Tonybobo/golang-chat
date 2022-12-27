@@ -31,13 +31,13 @@ func GetMessage(ctx *gin.Context) {
 		pagesInt = 1
 	}
 
-	message, err := service.MessageService.GetMessages(limitInt, pagesInt, messageRequest)
+	message, totalPage, err := service.MessageService.GetMessages(limitInt, pagesInt, messageRequest)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": message})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": message, "pages": totalPage})
 
 }

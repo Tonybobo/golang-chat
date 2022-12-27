@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 
 	"time"
 
@@ -14,13 +15,14 @@ import (
 	"github.com/tonybobo/go-chat/pkg/protocol"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type messageStruct struct{}
 
 var MessageService = new(messageStruct)
 
-func (m *messageStruct) GetMessages(limit int, page int, request *entity.MessageRequest) ([]primitive.M, error) {
+func (m *messageStruct) GetMessages(limit int, page int, request *entity.MessageRequest) ([]primitive.M, float64, error) {
 	db := repository.GetDB()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -45,16 +47,110 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 
 		if err != nil {
 			log.Logger.Error("db error", log.String("error: ", err.Error()))
-			return nil, err
+			return nil, 0, err
+		}
+
+		count, err := db.Collection("messages").CountDocuments(ctx, bson.D{
+			{Key: "$or", Value: bson.A{
+				bson.M{
+					"fromUserId": bson.M{"$in": username},
+				},
+				bson.M{
+					"toUserId": bson.M{"$in": username},
+				},
+			}},
+		},
+		)
+
+		totalPage := math.Ceil(float64(count) / float64(limit))
+
+		if err != nil {
+			log.Logger.Error("db error", log.String("error: ", err.Error()))
+			return nil, 0, err
 		}
 
 		if err = cursor.All(ctx, &messages); err != nil {
 			log.Logger.Error("cursor error", log.String("error: ", err.Error()))
-			return nil, err
+			return nil, 0, err
 		}
-		return messages, err
+		return messages, totalPage, err
 	}
-	return nil, errors.New("unsupported message type")
+
+	if request.MessageType == constant.MESSAGE_TYPE_GROUP {
+		match := bson.D{
+			{Key: "$match", Value: bson.D{
+				{Key: "toUserId", Value: request.FriendUid},
+				{Key: "messageType", Value: constant.MESSAGE_TYPE_GROUP},
+			}},
+		}
+
+		sort := bson.D{
+			{Key: "$sort", Value: bson.D{{Key: "createdAt", Value: 1}}},
+		}
+
+		skip := bson.D{{Key: "$skip", Value: page*limit - limit}}
+
+		limitStage := bson.D{{Key: "$limit", Value: limit}}
+
+		lookUp := bson.D{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: "users"},
+				{Key: "localField", Value: "fromUserId"},
+				{Key: "foreignField", Value: "uid"},
+				{Key: "pipeline", Value: bson.A{
+					bson.M{"$project": bson.D{
+						{Key: "_id", Value: 0},
+						{Key: "createdAt", Value: 0},
+						{Key: "updatedAt", Value: 0},
+						{Key: "deletedAt", Value: 0},
+						{Key: "password", Value: 0},
+					}},
+				}},
+				{Key: "as", Value: "sender"},
+			},
+			},
+		}
+
+		project := bson.D{
+			{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0},
+				{Key: "from", Value: bson.M{"$first": "$sender"}},
+				{Key: "content", Value: 1},
+				{Key: "contentType", Value: 1},
+				{Key: "url", Value: 1},
+				{Key: "createdAt", Value: 1},
+			}},
+		}
+
+		cursor, err := db.Collection("messages").Aggregate(ctx, mongo.Pipeline{match, sort, limitStage, skip, lookUp, project})
+
+		if err != nil {
+			log.Logger.Error("db error", log.String("error: ", err.Error()))
+			return nil, 0, err
+		}
+
+		if err := cursor.All(ctx, &messages); err != nil {
+			log.Logger.Error("cursor error", log.String("error: ", err.Error()))
+			return nil, 0, err
+		}
+
+		count, err := db.Collection("messages").CountDocuments(ctx, bson.D{
+			{Key: "toUserId", Value: request.FriendUid},
+			{Key: "messageType", Value: constant.MESSAGE_TYPE_GROUP},
+		},
+		)
+
+		if err != nil {
+			log.Logger.Error("db error", log.String("error: ", err.Error()))
+			return nil, 0, err
+		}
+
+		totalPage := math.Ceil(float64(count) / float64(limit))
+
+		return messages, totalPage, nil
+
+	}
+	return nil, 0, errors.New("unsupported message type")
 }
 
 func (m *messageStruct) SaveMessage(message *protocol.Message) {
