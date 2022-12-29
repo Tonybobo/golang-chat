@@ -43,7 +43,7 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 					"toUserId": bson.M{"$in": username},
 				},
 			}},
-		}, utils.NewMongoPagination(limit, page).GetPaginatedOpts("createdAt", 1))
+		}, utils.NewMongoPagination(limit, page).GetPaginatedOpts("createdAt", -1))
 
 		if err != nil {
 			log.Logger.Error("db error", log.String("error: ", err.Error()))
@@ -85,7 +85,7 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 		}
 
 		sort := bson.D{
-			{Key: "$sort", Value: bson.D{{Key: "createdAt", Value: 1}}},
+			{Key: "$sort", Value: bson.D{{Key: "createdAt", Value: -1}}},
 		}
 
 		skip := bson.D{{Key: "$skip", Value: page*limit - limit}}
@@ -122,7 +122,7 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 			}},
 		}
 
-		cursor, err := db.Collection("messages").Aggregate(ctx, mongo.Pipeline{match, sort, limitStage, skip, lookUp, project})
+		cursor, err := db.Collection("messages").Aggregate(ctx, mongo.Pipeline{match, sort,skip , limitStage , lookUp, project})
 
 		if err != nil {
 			log.Logger.Error("db error", log.String("error: ", err.Error()))

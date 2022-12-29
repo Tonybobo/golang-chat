@@ -22,7 +22,7 @@ func GetMessage(ctx *gin.Context) {
 	limitInt, err := strconv.Atoi(limit)
 
 	if err != nil {
-		limitInt = 20
+		limitInt = 5
 	}
 
 	pagesInt, err := strconv.Atoi(pages)
