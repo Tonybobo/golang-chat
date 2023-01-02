@@ -58,6 +58,7 @@ func (s *Server) Start() {
 		case message := <-s.BroadCast:
 			msg := &protocol.Message{}
 			proto.Unmarshal(message , msg)
+			log.Logger.Info("Login", log.Any("Adding User to Online Channel", msg))
 
 			if msg.To != "" {
 				//sending msg

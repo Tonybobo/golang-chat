@@ -15,12 +15,12 @@ var upgrader = websocket.Upgrader{
 }
 
 func ServeWs(c *gin.Context) {
-	user := c.Query("username")
-	if user == "" {
+	uid := c.Query("uid")
+	if uid == "" {
 		return
 	}
 
-	log.Logger.Info("New User to the Server", log.String("User: ", user))
+	log.Logger.Info("New User to the Server", log.String("User: ", uid))
 
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -31,7 +31,7 @@ func ServeWs(c *gin.Context) {
 	client := &server.Client{
 		Conn: ws,
 		Send: make(chan []byte),
-		User: user,
+		User: uid,
 	}
 
 	server.WebSocketServer.Online <- client
