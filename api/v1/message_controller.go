@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,7 @@ func GetMessage(ctx *gin.Context) {
 	limitInt, err := strconv.Atoi(limit)
 
 	if err != nil {
-		limitInt = 5
+		limitInt = 20
 	}
 
 	pagesInt, err := strconv.Atoi(pages)

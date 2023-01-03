@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/repository"
 	"github.com/tonybobo/go-chat/pkg/common/constant"
-	"github.com/tonybobo/go-chat/pkg/common/utils"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"github.com/tonybobo/go-chat/pkg/protocol"
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,23 +30,69 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 
 	var messages []primitive.M
 
+	sort := bson.D{
+			{Key: "$sort", Value: bson.D{{Key: "createdAt", Value: -1}}},
+		}
+
+	skip := bson.D{{Key: "$skip", Value: page*limit - limit}}
+
+	limitStage := bson.D{{Key: "$limit", Value: limit}}
+
+
+	lookUp := bson.D{
+			{Key: "$lookup", Value: bson.D{
+				{Key: "from", Value: "users"},
+				{Key: "localField", Value: "fromUserId"},
+				{Key: "foreignField", Value: "uid"},
+				{Key: "pipeline", Value: bson.A{
+					bson.M{"$project": bson.D{
+						{Key: "_id", Value: 0},
+						{Key: "createdAt", Value: 0},
+						{Key: "updatedAt", Value: 0},
+						{Key: "deletedAt", Value: 0},
+						{Key: "password", Value: 0},
+					}},
+				}},
+				{Key: "as", Value: "sender"},
+			},
+			},
+		}
+
+	project := bson.D{
+			{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0},
+				{Key: "from", Value: bson.M{"$first": "$sender"}},
+				{Key: "content", Value: 1},
+				{Key: "contentType", Value: 1},
+				{Key: "url", Value: 1},
+				{Key: "createdAt", Value: 1},
+			}},
+		}
+
 	if request.MessageType == constant.MESSAGE_TYPE_USER {
 		username := []string{
 			request.Uid, request.FriendUid,
 		}
-		cursor, err := db.Collection("messages").Find(ctx, bson.D{
-			{Key: "$or", Value: bson.A{
-				bson.M{
-					"fromUserId": bson.M{"$in": username},
+		fmt.Println(request.Uid , request.FriendUid)
+
+		match := bson.D{
+					{Key: "$match", Value: bson.D{
+							{Key: "$or", Value: bson.A{
+								bson.M{"fromUserId": bson.M{"$in": username}},
+								bson.M{"toUserId": bson.M{"$in": username}},
+							},
+					}},
 				},
-				bson.M{
-					"toUserId": bson.M{"$in": username},
-				},
-			}},
-		}, utils.NewMongoPagination(limit, page).GetPaginatedOpts("createdAt", -1))
+			}
+		cursor, err := db.Collection("messages").Aggregate(ctx, mongo.Pipeline{match, sort , skip ,limitStage , lookUp , project})
 
 		if err != nil {
 			log.Logger.Error("db error", log.String("error: ", err.Error()))
+			return nil, 0, err
+		}
+
+		if err := cursor.All(ctx, &messages); err != nil {
+			log.Logger.Error("cursor error", log.String("error: ", err.Error()))
 			return nil, 0, err
 		}
 
@@ -68,11 +114,6 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 			log.Logger.Error("db error", log.String("error: ", err.Error()))
 			return nil, 0, err
 		}
-
-		if err = cursor.All(ctx, &messages); err != nil {
-			log.Logger.Error("cursor error", log.String("error: ", err.Error()))
-			return nil, 0, err
-		}
 		return messages, totalPage, err
 	}
 
@@ -81,44 +122,6 @@ func (m *messageStruct) GetMessages(limit int, page int, request *entity.Message
 			{Key: "$match", Value: bson.D{
 				{Key: "toUserId", Value: request.FriendUid},
 				{Key: "messageType", Value: constant.MESSAGE_TYPE_GROUP},
-			}},
-		}
-
-		sort := bson.D{
-			{Key: "$sort", Value: bson.D{{Key: "createdAt", Value: -1}}},
-		}
-
-		skip := bson.D{{Key: "$skip", Value: page*limit - limit}}
-
-		limitStage := bson.D{{Key: "$limit", Value: limit}}
-
-		lookUp := bson.D{
-			{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: "users"},
-				{Key: "localField", Value: "fromUserId"},
-				{Key: "foreignField", Value: "uid"},
-				{Key: "pipeline", Value: bson.A{
-					bson.M{"$project": bson.D{
-						{Key: "_id", Value: 0},
-						{Key: "createdAt", Value: 0},
-						{Key: "updatedAt", Value: 0},
-						{Key: "deletedAt", Value: 0},
-						{Key: "password", Value: 0},
-					}},
-				}},
-				{Key: "as", Value: "sender"},
-			},
-			},
-		}
-
-		project := bson.D{
-			{Key: "$project", Value: bson.D{
-				{Key: "_id", Value: 0},
-				{Key: "from", Value: bson.M{"$first": "$sender"}},
-				{Key: "content", Value: 1},
-				{Key: "contentType", Value: 1},
-				{Key: "url", Value: 1},
-				{Key: "createdAt", Value: 1},
 			}},
 		}
 

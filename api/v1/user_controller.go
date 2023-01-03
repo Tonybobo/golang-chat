@@ -68,7 +68,7 @@ func EditUserDetail(ctx *gin.Context) {
 func GetUserDetail(ctx *gin.Context) {
 	uid := ctx.Param("uid")
 	log.Logger.Info("uid", log.String("uid", uid))
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": service.UserService.GetUserDetails(uid)})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": entity.FilteredResponse(service.UserService.GetUserDetails(uid))})
 }
 
 func GetUserOrGroupByName(ctx *gin.Context) {
