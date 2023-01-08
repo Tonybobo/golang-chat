@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tonybobo/go-chat/config"
@@ -15,13 +14,7 @@ var _db *mongo.Database
 
 func init() {
 
-	username := config.GetConfig().Mongo.Username
-	password := config.GetConfig().Mongo.Password
-	database := config.GetConfig().Mongo.Database
-
-	dsn := fmt.Sprintf("mongodb+srv://%s:%s@cluster0.bkuvj3e.mongodb.net/?retryWrites=true&w=majority", username, password)
-
-	client, err := mongo.NewClient(options.Client().ApplyURI(dsn))
+	client, err := mongo.NewClient(options.Client().ApplyURI(config.GetConfig().DBURi))
 
 	if err != nil {
 		panic("Fail to connect to DB err:" + err.Error())
@@ -35,7 +28,7 @@ func init() {
 		panic(err)
 	}
 
-	_db = client.Database(database)
+	_db = client.Database(config.GetConfig().DB)
 
 	index := []mongo.IndexModel{
 		{

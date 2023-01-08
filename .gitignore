@@ -1,5 +1,5 @@
 tmp/*
 docker-compose.yml
 logs/*
-config.toml
+config.env
 keys.json

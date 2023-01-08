@@ -11,24 +11,25 @@ import (
 )
 
 func main() {
-	log.InitLogger(config.GetConfig().Log.Path)
+	log.InitLogger("logs/chat.log")
+
 	log.Logger.Info("config", log.Any("config", config.GetConfig()))
 
-	log.Logger.Info("start server" , log.String("start" , "server starting"))
+	log.Logger.Info("start server", log.String("start", "server starting"))
 
 	router := router.NewRouter()
 
 	go server.WebSocketServer.Start()
 
 	s := &http.Server{
-		Addr: ":8888",
-		Handler: router,
-		ReadTimeout: 10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:           ":8888",
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	if err := s.ListenAndServe(); err !=nil{
-		log.Logger.Error("Fail to Start Server" , log.Any("Error: " , err))
+	if err := s.ListenAndServe(); err != nil {
+		log.Logger.Error("Fail to Start Server", log.Any("Error: ", err))
 	}
 }

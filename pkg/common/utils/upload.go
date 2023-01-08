@@ -32,8 +32,8 @@ func init() {
 
 	Uploader = &StorageClient{
 		storageClient: client,
-		bucket:        config.GetConfig().GCP.Bucket,
-		projectID:     config.GetConfig().GCP.ProjectID,
+		bucket:        config.GetConfig().Bucket,
+		projectID:     config.GetConfig().ProjectID,
 	}
 }
 

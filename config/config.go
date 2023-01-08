@@ -8,50 +8,29 @@ import (
 )
 
 type Config struct {
-	AppName        string
-	Mongo          MongoConfig
-	Log            LogConfig
-	MsgChannelType MsgChannelType
-	Token          Token
-	GCP            GcpConfig
-}
+	AppName string `mapstructure:"APPNAME"`
+	DBURi   string `mapstructure:"MONGODB_URL"`
+	DB      string `mapstructure:"DATABASE"`
 
-type MongoConfig struct {
-	Username string
-	Password string
-	Database string
-}
-
-type LogConfig struct {
-	Path string
-}
-
-type Token struct {
-	AccessTokenPrivateKey string
-	AccessTokenPublicKey  string
-	AccessTokenExpiresIn  time.Duration
-	AccessTokenMaxAge     int
-}
-
-type MsgChannelType struct {
-	ChannelType string
-	KafkaHost   string
-	KafkaTopic  string
-}
-
-type GcpConfig struct {
-	Bucket        string
-	ProjectID     string
-	URL           string
-	DefaultUserAvatar string
-	DefaultGroupAvatar string
+	ChannelType           string        `mapstructure:"CHANNEL_TYPE"`
+	KafkaHost             string        `mapstructure:"KAFKA_HOST"`
+	KafkaTopic            string        `mapstructure:"KAFKA_TOPIC"`
+	AccessTokenPrivateKey string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
+	AccessTokenPublicKey  string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
+	AccessTokenExpiresIn  time.Duration `mapstructure:"ACCESS_TOKEN_EXPIRED_IN"`
+	AccessTokenMaxAge     int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
+	Bucket                string        `mapstructure:"BUCKET"`
+	ProjectID             string        `mapstructure:"PROJECT_ID"`
+	URL                   string        `mapstructure:"URL"`
+	DefaultUserAvatar     string        `mapstructure:"DEFAULT_USER_AVATAR"`
+	DefaultGroupAvatar    string        `mapstructure:"DEFAULT_GROUP_AVATAR"`
 }
 
 var c Config
 
 func init() {
 	viper.SetConfigName("config")
-	viper.SetConfigType("toml")
+	viper.SetConfigType("env")
 
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()

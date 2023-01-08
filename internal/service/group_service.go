@@ -78,7 +78,7 @@ func (g *groupService) GetGroups(uid string) ([]primitive.M, error) {
 	return groups, nil
 }
 
-func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) (error) {
+func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) error {
 	db := repository.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -88,7 +88,7 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) (error) {
 		return err
 	}
 
-	count , err := db.Collection("groups").CountDocuments(ctx , bson.D{{Key: "name" , Value: group.Name}})
+	count, err := db.Collection("groups").CountDocuments(ctx, bson.D{{Key: "name", Value: group.Name}})
 
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) (error) {
 	group.CreatedAt = time.Now()
 	group.UpdatedAt = time.Now()
 	group.Uid = uuid.New().String()
-	group.Avatar = config.GetConfig().GCP.DefaultGroupAvatar
+	group.Avatar = config.GetConfig().DefaultGroupAvatar
 	db.Collection("groups").InsertOne(ctx, &group)
 
 	groupMember := &entity.GroupMember{
@@ -119,7 +119,7 @@ func (g *groupService) SaveGroup(uid string, group *entity.GroupChat) (error) {
 	return nil
 }
 
-func (g *groupService) JoinGroup(userUid string, groupUid string) (*entity.GroupChat ,error) {
+func (g *groupService) JoinGroup(userUid string, groupUid string) (*entity.GroupChat, error) {
 	var user *entity.User
 	db := repository.GetDB()
 
@@ -137,19 +137,19 @@ func (g *groupService) JoinGroup(userUid string, groupUid string) (*entity.Group
 		log.Logger.Error("error", log.Any("error :", err))
 	}
 
-	count , err := db.Collection("groupMembers").CountDocuments(ctx, bson.D{
+	count, err := db.Collection("groupMembers").CountDocuments(ctx, bson.D{
 		{Key: "$and", Value: bson.A{
 			bson.M{"userId": user.Uid},
 			bson.M{"groupId": group.Uid},
 		}},
 	})
 
-	if err !=  nil {
-		return nil , err
+	if err != nil {
+		return nil, err
 	}
 
 	if count > 0 {
-		return nil , errors.New("already a group member ")
+		return nil, errors.New("already a group member ")
 	}
 
 	name := user.Name
@@ -168,7 +168,7 @@ func (g *groupService) JoinGroup(userUid string, groupUid string) (*entity.Group
 	}
 	db.Collection("groupMembers").InsertOne(ctx, &insert)
 
-	return group ,  nil
+	return group, nil
 }
 
 func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
@@ -217,9 +217,9 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 	if err != nil {
 		log.Logger.Error("aggregation", log.Any("Error", err))
 		if err == mongo.ErrNoDocuments {
-			return nil , nil
+			return nil, nil
 		}
-		return nil , err
+		return nil, err
 	}
 
 	var members []primitive.M
@@ -229,7 +229,7 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 		if err := result.Decode(&res); err != nil {
 			log.Logger.Error("aggregation Decoding", log.Any("Error", err))
 			if err == mongo.ErrNilDocument {
-				return nil , nil
+				return nil, nil
 			}
 		}
 		if res != nil {
@@ -245,7 +245,7 @@ func (g *groupService) GetGroupUsers(uid string) ([]primitive.M, error) {
 	return members, nil
 }
 
-func (g *groupService) UploadGroupAvatar(c *gin.Context) (*entity.GroupChat, error){
+func (g *groupService) UploadGroupAvatar(c *gin.Context) (*entity.GroupChat, error) {
 	var queryGroup *entity.GroupChat
 	err := c.Request.ParseMultipartForm(32 << 20)
 	if err != nil {
@@ -254,26 +254,25 @@ func (g *groupService) UploadGroupAvatar(c *gin.Context) (*entity.GroupChat, err
 	}
 	groupId := c.Param("uid")
 	db := repository.GetDB().Collection("groups")
-	ctx , cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := db.FindOne(ctx , bson.D{{Key: "uid" , Value: groupId}}).Decode(&queryGroup); err != nil {
+	if err := db.FindOne(ctx, bson.D{{Key: "uid", Value: groupId}}).Decode(&queryGroup); err != nil {
 		log.Logger.Error("error", log.Any("error", err))
 		return nil, err
 	}
 
-	f , uploadedFile , _ := c.Request.FormFile("avatar")
+	f, uploadedFile, _ := c.Request.FormFile("avatar")
 
 	defer f.Close()
 
-	if strings.Split(queryGroup.Avatar, "avatar/group/")[1] == uploadedFile.Filename  {
-		return nil , errors.New("same image")
+	if strings.Split(queryGroup.Avatar, "avatar/group/")[1] == uploadedFile.Filename {
+		return nil, errors.New("same image")
 	}
 
-
-	if queryGroup.Avatar != config.GetConfig().GCP.DefaultGroupAvatar {
+	if queryGroup.Avatar != config.GetConfig().DefaultGroupAvatar {
 		if err := utils.Uploader.DeleteImage(queryGroup.Avatar); err != nil {
-			return nil , err
+			return nil, err
 		}
 	}
 
@@ -283,22 +282,22 @@ func (g *groupService) UploadGroupAvatar(c *gin.Context) (*entity.GroupChat, err
 		return nil, err
 	}
 
-	var updatedGroup *entity.GroupChat 
+	var updatedGroup *entity.GroupChat
 
-	update :=  bson.D{{Key: "$set", Value: bson.D{
-			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
+	update := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "avatar", Value: config.GetConfig().URL + avatar},
 	}}}
 
-	if err := db.FindOneAndUpdate(ctx, bson.D{{Key: "uid" , Value: queryGroup.Uid }}, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
+	if err := db.FindOneAndUpdate(ctx, bson.D{{Key: "uid", Value: queryGroup.Uid}}, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
 		log.Logger.Error("error", log.Any("error", err))
 		return nil, err
 	}
 
-	return updatedGroup , nil 
+	return updatedGroup, nil
 }
 
-func (g* groupService) EditGroupDetail (c *gin.Context) (*entity.GroupChat , error ){
-	
+func (g *groupService) EditGroupDetail(c *gin.Context) (*entity.GroupChat, error) {
+
 	uid := c.Param("uid")
 	name := c.Request.PostFormValue("name")
 	notice := c.Request.PostFormValue("notice")
@@ -310,18 +309,18 @@ func (g* groupService) EditGroupDetail (c *gin.Context) (*entity.GroupChat , err
 	filter := bson.D{{Key: "uid", Value: uid}}
 
 	update := bson.D{{
-		Key: "$set" , Value: bson.D{
-			{Key: "name" , Value: name},
-			{Key:"notice" , Value: notice},
+		Key: "$set", Value: bson.D{
+			{Key: "name", Value: name},
+			{Key: "notice", Value: notice},
 		},
 	}}
-	
+
 	var updatedGroup *entity.GroupChat
 
-	if err := db.FindOneAndUpdate(ctx , filter , update , options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
+	if err := db.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedGroup); err != nil {
 		log.Logger.Error("error", log.Any("error", err))
 		return nil, err
 	}
-	
-	return updatedGroup , nil
+
+	return updatedGroup, nil
 }

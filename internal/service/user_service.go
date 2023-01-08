@@ -54,7 +54,7 @@ func (u *userService) Register(register *entity.Register) (user *entity.User, er
 	newUser.Email = register.Email
 	newUser.Password = hashPassword
 	newUser.Uid = uuid.New().String()
-	newUser.Avatar = config.GetConfig().GCP.DefaultUserAvatar
+	newUser.Avatar = config.GetConfig().DefaultUserAvatar
 
 	db.InsertOne(ctx, &newUser)
 	return &newUser, nil
@@ -78,7 +78,7 @@ func (u *userService) Login(login *entity.Login) (*entity.User, bool) {
 	}
 }
 
-func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
+func (u *userService) UploadUserAvatar(c *gin.Context) (*entity.User, error) {
 	var queryUser *entity.User
 	err := c.Request.ParseMultipartForm(32 << 20)
 	if err != nil {
@@ -99,32 +99,30 @@ func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
 		return nil, err
 	}
 
-
 	f, uploadedFile, _ := c.Request.FormFile("avatar")
-	
+
 	defer f.Close()
 
-
-	if strings.Split(queryUser.Avatar, "avatar/user/")[1] == uploadedFile.Filename{
-		return nil , errors.New("same image")
+	if strings.Split(queryUser.Avatar, "avatar/user/")[1] == uploadedFile.Filename {
+		return nil, errors.New("same image")
 	}
 
-	if queryUser.Avatar != config.GetConfig().GCP.DefaultUserAvatar {
+	if queryUser.Avatar != config.GetConfig().DefaultUserAvatar {
 		if err := utils.Uploader.DeleteImage(queryUser.Avatar); err != nil {
-			return nil , err
+			return nil, err
 		}
 	}
-	
+
 	avatar, err := utils.Uploader.UploadImage(f, "avatar/user/"+uploadedFile.Filename)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var updatedUser *entity.User 
+	var updatedUser *entity.User
 
-	update :=  bson.D{{Key: "$set", Value: bson.D{
-			{Key: "avatar", Value: config.GetConfig().GCP.URL + avatar},
+	update := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "avatar", Value: config.GetConfig().URL + avatar},
 	}}}
 
 	if err := db.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedUser); err != nil {
@@ -132,7 +130,7 @@ func (u *userService) UploadUserAvatar(c *gin.Context)(*entity.User , error) {
 		return nil, err
 	}
 
-	return updatedUser , nil 
+	return updatedUser, nil
 }
 
 func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
@@ -148,12 +146,11 @@ func (u *userService) EditUserDetail(c *gin.Context) (*entity.User, error) {
 	filter := bson.D{{Key: "username", Value: username}}
 
 	update := bson.D{
-			{Key: "$set", Value: bson.D{
-				{Key: "name", Value: name},
-				{Key: "email", Value: email},
-			}},
-		}
-
+		{Key: "$set", Value: bson.D{
+			{Key: "name", Value: name},
+			{Key: "email", Value: email},
+		}},
+	}
 
 	var updatedUser *entity.User
 
@@ -210,13 +207,13 @@ func (u *userService) GetUsersOrGroupBy(name string) *entity.SearchResponse {
 	}
 }
 
-func (u *userService) AddFriend(request *entity.FriendRequest) (*entity.User ,error) {
+func (u *userService) AddFriend(request *entity.FriendRequest) (*entity.User, error) {
 	var user *entity.User
 	db := repository.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := db.Collection("users").FindOne(ctx, bson.D{{Key: "uid", Value: request.Uid}}).Decode(&user); err != nil {
-		return nil , err
+		return nil, err
 	}
 
 	var friend *entity.User
@@ -246,7 +243,7 @@ func (u *userService) AddFriend(request *entity.FriendRequest) (*entity.User ,er
 	}
 	db.Collection("userFriend").InsertOne(ctx, &addFriend)
 
-	return friend , nil 
+	return friend, nil
 }
 
 func (u *userService) GetFriends(uid string) ([]primitive.M, error) {

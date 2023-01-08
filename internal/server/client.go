@@ -32,14 +32,14 @@ func (c *Client) Receiver() {
 
 		msg := &protocol.Message{}
 		proto.Unmarshal(message, msg)
-		
-		if config.GetConfig().MsgChannelType.ChannelType == constant.KAKFA {
+
+		if config.GetConfig().ChannelType == constant.KAKFA {
 			//send msg to kafka
 			//TODO
-		}else{
-			WebSocketServer.BroadCast <- message 
+		} else {
+			WebSocketServer.BroadCast <- message
 		}
-		
+
 	}
 }
 
