@@ -29,10 +29,8 @@ type Config struct {
 var c Config
 
 func init() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("env")
 
-	viper.AddConfigPath(".")
+	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 	err := viper.ReadInConfig()
 	if err != nil {

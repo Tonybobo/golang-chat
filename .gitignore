@@ -3,3 +3,4 @@ docker-compose.yml
 logs/*
 config.env
 keys.json
+.env
