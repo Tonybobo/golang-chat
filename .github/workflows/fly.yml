@@ -47,4 +47,13 @@ jobs:
           echo "cat .env"
           cat .env
           ls -a
+      - name: 'create json file'
+        env:
+          DATA: ${{secrets.GOOGLE_SERVICES_JSON}}
+        run: |
+          cat keys.json | base64
+          echo $DATA > keys.json
+          echo "cat keys.json"
+          cat keys.json
+          ls -a
       - run: flyctl deploy --remote-only
