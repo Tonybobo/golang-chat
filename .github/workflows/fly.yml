@@ -13,7 +13,19 @@ jobs:
       - name: 'create env file'
         run: |
           touch .env
-          echo APPNAME=${{ secrets.APPNAME }} >> .env
+          echo MONGODB_URL=${{ secrets.MONGODB_URL }} >> .env
+          echo DATABASE=${{ secrets.DATABASE }} >> .env
+          echo CHANNEL_TYPE=${{ secrets.CHANNEL_TYPE }} >> .env
+          echo KAFKA_HOST=${{ secrets.KAFKA_TOPIC }} >> .env
+          echo ACCESS_TOKEN_PRIVATE_KEY=${{ secrets.ACCESS_TOKEN_PRIVATE_KEY }} >> .env
+          echo ACCESS_TOKEN_PUBLIC_KEY=${{ secrets.ACCESS_TOKEN_PUBLIC_KEY }} >> .env
+          echo ACCESS_TOKEN_EXPIRED_IN=${{ secrets.ACCESS_TOKEN_EXPIRED_IN }} >> .env
+          echo ACCESS_TOKEN_MAXAGE=${{ secrets.ACCESS_TOKEN_MAXAGE }} >> .env
+          echo BUCKET=${{ secrets.BUCKET }} >> .env
+          echo PROJECT_ID=${{ secrets.PROJECT_ID }} >> .env
+          echo URL=${{ secrets.URL }} >> .env
+          echo DEFAULT_USER_AVATAR=${{ secrets.DEFAULT_USER_AVATAR }} >> .env
+          echo DEFAULT_GROUP_AVATAR=${{ secrets.DEFAULT_GROUP_AVATAR }} >> .env
           cat .env
       - uses: actions/checkout@v3
       - uses: superfly/flyctl-actions/setup-flyctl@master
