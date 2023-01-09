@@ -12,11 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: 'create env file'
-         run: |
+      - name: 'Create env file'
+        run: |
           touch .env
-          echo POSTGRES_USER=123 > .env
-          echo POSTGRES_PASSWORD=2234 > .env
+          echo API_ENDPOINT="https://xxx.execute-api.us-west-2.amazonaws.com" >> .env
+          echo API_KEY=${{ secrets.API_KEY }} >> .env
           cat .env
-          ls
-      # - run: flyctl deploy --remote-only
