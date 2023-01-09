@@ -28,5 +28,6 @@ jobs:
           echo URL=${{ secrets.URL }} >> .env
           echo DEFAULT_USER_AVATAR=${{ secrets.DEFAULT_USER_AVATAR }} >> .env
           echo DEFAULT_GROUP_AVATAR=${{ secrets.DEFAULT_GROUP_AVATAR }} >> .env
+          ls
           cat .env
       - run: flyctl deploy --remote-only
