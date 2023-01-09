@@ -19,4 +19,4 @@ jobs:
           echo POSTGRES_PASSWORD=2234 > .env
           cat .env
           ls
-      - run: flyctl deploy --remote-only
+      # - run: flyctl deploy --remote-only
