@@ -14,21 +14,37 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: 'create env file'
         env:
-
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          DATABASE: ${{ secrets.DATABASE }}
+          CHANNEL_TYPE: ${{ secrets.CHANNEL_TYPE }}
+          KAFKA_HOST: ${{ secrets.KAFKA_TOPIC }}
+          ACCESS_TOKEN_PRIVATE_KEY: ${{ secrets.ACCESS_TOKEN_PRIVATE_KEY }}
+          ACCESS_TOKEN_PUBLIC_KEY: ${{ secrets.ACCESS_TOKEN_PUBLIC_KEY }}
+          ACCESS_TOKEN_EXPIRED_IN: ${{ secrets.ACCESS_TOKEN_EXPIRED_IN }}
+          ACCESS_TOKEN_MAXAGE: ${{ secrets.ACCESS_TOKEN_MAXAGE }}
+          BUCKET: ${{ secrets.BUCKET }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          URL: ${{ secrets.URL }}
+          DEFAULT_USER_AVATAR: ${{ secrets.DEFAULT_USER_AVATAR }}
+          DEFAULT_GROUP_AVATAR: ${{ secrets.DEFAULT_GROUP_AVATAR }}
         run: |
-          touch .env
-          echo MONGODB_URL=${{ secrets.MONGODB_URL }} >> .env
-          echo DATABASE=${{ secrets.DATABASE }} >> .env
-          echo CHANNEL_TYPE=${{ secrets.CHANNEL_TYPE }} >> .env
-          echo KAFKA_HOST=${{ secrets.KAFKA_TOPIC }} >> .env
-          echo ACCESS_TOKEN_PRIVATE_KEY=${{ secrets.ACCESS_TOKEN_PRIVATE_KEY }} >> .env
-          echo ACCESS_TOKEN_PUBLIC_KEY=${{ secrets.ACCESS_TOKEN_PUBLIC_KEY }} >> .env
-          echo ACCESS_TOKEN_EXPIRED_IN=${{ secrets.ACCESS_TOKEN_EXPIRED_IN }} >> .env
-          echo ACCESS_TOKEN_MAXAGE=${{ secrets.ACCESS_TOKEN_MAXAGE }} >> .env
-          echo BUCKET=${{ secrets.BUCKET }} >> .env
-          echo PROJECT_ID=${{ secrets.PROJECT_ID }} >> .env
-          echo URL=${{ secrets.URL }} >> .env
-          echo DEFAULT_USER_AVATAR=${{ secrets.DEFAULT_USER_AVATAR }} >> .env
-          echo DEFAULT_GROUP_AVATAR=${{ secrets.DEFAULT_GROUP_AVATAR }} >> .env
+          cat <<EOF > .env
+          MONGODB_URL="$MONGODB_URL"
+          DATABASE="$DATABASE"
+          CHANNEL_TYPE="$CHANNEL_TYPE"
+          KAFKA_HOST="$KAFKA_HOST"
+          ACCESS_TOKEN_PRIVATE_KEY="$ACCESS_TOKEN_PRIVATE_KEY"
+          ACCESS_TOKEN_PUBLIC_KEY = "$ACCESS_TOKEN_PUBLIC_KEY"
+          ACCESS_TOKEN_EXPIRED_IN = "$ACCESS_TOKEN_EXPIRED_IN"
+          ACCESS_TOKEN_MAXAGE = "$ACCESS_TOKEN_MAXAGE"
+          BUCKET = "$BUCKET"
+          PROJECT_ID = "$PROJECT_ID"
+          URL = "$URL"
+          DEFAULT_USER_AVATAR = "$DEFAULT_USER_AVATAR"
+          DEFAULT_GROUP_AVATAR = "$DEFAULT_GROUP_AVATAR"
+          EOF
+
+          echo "cat .env"
+          cat .env
           ls -a
       - run: flyctl deploy --remote-only
