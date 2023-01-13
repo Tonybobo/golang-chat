@@ -11,6 +11,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/tonybobo/go-chat/config"
+	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"google.golang.org/api/option"
 )
@@ -20,6 +21,8 @@ type StorageClient struct {
 	bucket        string
 	projectID     string
 }
+
+
 
 var Uploader *StorageClient
 
@@ -35,6 +38,23 @@ func init() {
 		bucket:        config.GetConfig().Bucket,
 		projectID:     config.GetConfig().ProjectID,
 	}
+}
+
+func (s *StorageClient) GenerateSignedUrl(request *entity.SignedUrlRequest ) (string , error) {
+
+	url , err := s.storageClient.Bucket(s.bucket).SignedURL(request.FileName , &storage.SignedURLOptions{
+		Scheme: storage.SigningSchemeV4,
+		Method: request.Method,
+		Headers: []string{
+			    fmt.Sprintf("Content-Type:%s" , request.ContentType),
+		},
+		Expires: time.Now().Add(15 * time.Minute),
+	})
+	if err != nil {
+		return "" , err
+	}
+
+	return url , nil
 }
 
 func (s *StorageClient) UploadImage(file multipart.File, path string) (string, error) {

@@ -8,7 +8,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tonybobo/go-chat/internal/entity"
 	"github.com/tonybobo/go-chat/internal/service"
+	"github.com/tonybobo/go-chat/pkg/common/utils"
 )
+
+func GenerateSignedUrl(ctx *gin.Context) {
+	var signedRequest *entity.SignedUrlRequest
+
+	if err := ctx.BindJSON(&signedRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	url , err := utils.Uploader.GenerateSignedUrl(signedRequest)
+
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "Error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "url": url})
+}
 
 func GetMessage(ctx *gin.Context) {
 	var messageRequest *entity.MessageRequest

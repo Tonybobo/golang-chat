@@ -44,7 +44,7 @@ func NewRouter() *gin.Engine {
 		group.POST("/group/edit/:uid", v1.EditGroupDetail)
 
 		//message
-
+		group.POST("/message/url", v1.GenerateSignedUrl)
 		group.POST("/messages", v1.GetMessage)
 	}
 
