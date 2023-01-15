@@ -33,6 +33,21 @@ func (c *Client) Receiver() {
 		msg := &protocol.Message{}
 		proto.Unmarshal(message, msg)
 
+		if msg.Type == constant.HEART_BEAT {
+			pong := &protocol.Message{
+				Content: constant.PONG,
+				Type: constant.HEART_BEAT,
+			}
+
+			pongByte , err := proto.Marshal(pong)
+			if err  != nil {
+				log.Logger.Error("Client Marshall Message Error" , log.Any("error : " , err.Error()))
+			}
+
+			c.Conn.WriteMessage(websocket.BinaryMessage , pongByte)
+
+		}
+
 		if config.GetConfig().ChannelType == constant.KAKFA {
 			//send msg to kafka
 			//TODO
