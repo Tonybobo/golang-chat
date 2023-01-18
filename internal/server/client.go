@@ -47,15 +47,14 @@ func (c *Client) Receiver() {
 
 			c.Conn.WriteMessage(websocket.BinaryMessage , pongByte)
 
-		}
-
-		if config.GetConfig().ChannelType == constant.KAKFA {
+		}else{
+			if config.GetConfig().ChannelType == constant.KAKFA {
 			//send msg to kafka
 			//TODO
 		} else {
 			WebSocketServer.BroadCast <- message
 		}
-
+		}
 	}
 }
 
