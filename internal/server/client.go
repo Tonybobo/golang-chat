@@ -22,6 +22,7 @@ func (c *Client) Receiver() {
 	}()
 
 	for {
+		c.Conn.PongHandler()
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			log.Logger.Error("Client Read Message Error", log.Any("error:", err))
