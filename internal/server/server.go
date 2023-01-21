@@ -80,6 +80,13 @@ func (s *Server) Start() {
 					}else if msg.MessageType == constant.MESSAGE_TYPE_GROUP {
 						sendGroupMessage(msg ,s)
 					}
+				}else{
+					//content type >= 6
+
+					client , online := s.Clients[msg.To]
+					if online {
+						client.Send <- message
+					}
 				}
 			}else {
 				//broadcast to all users
