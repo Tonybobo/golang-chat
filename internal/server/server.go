@@ -30,6 +30,10 @@ func NewServer() *Server {
 	}
 }
 
+func ConsumerKafkaMsg(data []byte){
+	WebSocketServer.BroadCast <- data
+}
+
 func (s *Server) Start() {
 	log.Logger.Info("Start Websocket", log.String("starting websocket", "websocket..."))
 
@@ -82,7 +86,7 @@ func (s *Server) Start() {
 					}
 				}else{
 					//content type >= 6
-
+					
 					client , online := s.Clients[msg.To]
 					if online {
 						client.Send <- message

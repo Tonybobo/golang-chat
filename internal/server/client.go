@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/gorilla/websocket"
 	"github.com/tonybobo/go-chat/config"
+	"github.com/tonybobo/go-chat/internal/kafka"
 	"github.com/tonybobo/go-chat/pkg/common/constant"
 	"github.com/tonybobo/go-chat/pkg/global/log"
 	"github.com/tonybobo/go-chat/pkg/protocol"
@@ -49,11 +50,10 @@ func (c *Client) Receiver() {
 
 		}else{
 			if config.GetConfig().ChannelType == constant.KAKFA {
-			//send msg to kafka
-			//TODO
-		} else {
-			WebSocketServer.BroadCast <- message
-		}
+				kafka.Send(message)
+			} else {
+				WebSocketServer.BroadCast <- message
+			}
 		}
 	}
 }
